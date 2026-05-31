@@ -311,6 +311,7 @@ private struct ConnectorsSection: View {
     private let implemented: Set<ProviderID> = [.eventKit, .googleCalendar, .microsoftGraph, .calendly, .calCom, .acuity, .calDAV]
     private let oauthProviders: Set<ProviderID> = [.googleCalendar, .microsoftGraph, .calendly]
     @State private var credentialProvider: ProviderID?
+    @State private var oauthSetupProvider: ProviderID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -337,6 +338,9 @@ private struct ConnectorsSection: View {
                 },
                 onCancel: { credentialProvider = nil }
             )
+        }
+        .sheet(item: $oauthSetupProvider) { provider in
+            OAuthSetupSheet(provider: provider, model: model, onClose: { oauthSetupProvider = nil })
         }
     }
 
@@ -373,10 +377,15 @@ private struct ConnectorsSection: View {
             Text("Coming soon").font(Brand.font(12)).foregroundStyle(Brand.stone)
         } else if oauthProviders.contains(provider) {
             if ConnectorConfig.isConfigured(provider) {
-                Button("Connect") { model.connect(providerID: provider) }
-                    .buttonStyle(.plain).font(Brand.font(12, .semibold)).foregroundStyle(Brand.blush)
+                HStack(spacing: 8) {
+                    Button("Connect") { model.connect(providerID: provider) }
+                        .buttonStyle(.plain).font(Brand.font(12, .semibold)).foregroundStyle(Brand.blush)
+                    Button("Edit") { oauthSetupProvider = provider }
+                        .buttonStyle(.plain).font(Brand.font(12)).foregroundStyle(Brand.stone)
+                }
             } else {
-                Text("Not configured").font(Brand.font(12)).foregroundStyle(Brand.stone)
+                Button("Set up") { oauthSetupProvider = provider }
+                    .buttonStyle(.plain).font(Brand.font(12, .semibold)).foregroundStyle(Brand.blush)
             }
         } else {
             Button("Connect") { credentialProvider = provider }
@@ -575,6 +584,93 @@ private struct AboutSection: View {
             Text("Nudgebar shows configurable full-screen reminders before your meetings and events, sourced from your local macOS calendars (with cloud connectors planned).")
                 .font(Brand.font(13)).foregroundStyle(Brand.sand)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+// MARK: - OAuth setup
+
+private struct OAuthSetupSheet: View {
+    let provider: ProviderID
+    let model: AppModel
+    let onClose: () -> Void
+    @State private var clientID = ""
+    @State private var clientSecret = ""
+
+    private var needsSecret: Bool { provider == .calendly }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Set up \(provider.displayName)")
+                .font(Brand.font(16, .semibold)).foregroundStyle(Brand.blush)
+            Text(instructions)
+                .font(Brand.font(11)).foregroundStyle(Brand.sand)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Redirect URI").font(Brand.font(10, .semibold)).foregroundStyle(Brand.stone)
+                Text(ConnectorConfig.redirectHint(for: provider))
+                    .font(Brand.font(11).monospaced()).foregroundStyle(Brand.blush)
+                    .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Client ID").font(Brand.font(11)).foregroundStyle(Brand.stone)
+                TextField("Client ID", text: $clientID).textFieldStyle(.roundedBorder)
+            }
+            if needsSecret {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Client secret").font(Brand.font(11)).foregroundStyle(Brand.stone)
+                    SecureField("Client secret", text: $clientSecret).textFieldStyle(.roundedBorder)
+                }
+            }
+
+            HStack {
+                if let url = consoleURL {
+                    Link("Open console", destination: url).font(Brand.font(12)).tint(Brand.blush)
+                }
+                Spacer()
+                Button("Cancel", action: onClose).buttonStyle(.plain).foregroundStyle(Brand.stone)
+                Button("Save") {
+                    model.saveOAuthClient(
+                        providerID: provider,
+                        clientID: clientID.trimmingCharacters(in: .whitespacesAndNewlines),
+                        clientSecret: clientSecret
+                    )
+                    onClose()
+                }
+                .buttonStyle(.borderedProminent).tint(Brand.blush)
+                .disabled(clientID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+        .padding(20).frame(width: 460)
+        .background(Brand.ink).environment(\.colorScheme, .dark)
+        .onAppear {
+            let config = ConnectorConfig.load()
+            clientID = config.oauthClientID(for: provider) ?? ""
+            clientSecret = config.oauthClientSecret(for: provider) ?? ""
+        }
+    }
+
+    private var instructions: String {
+        switch provider {
+        case .googleCalendar:
+            return "In Google Cloud Console: enable the Google Calendar API, then create an OAuth 2.0 Client ID of type \"iOS\" (any bundle ID, e.g. com.local.Nudgebar). Paste the client ID below — Nudgebar derives the redirect automatically. iOS clients have no secret."
+        case .microsoftGraph:
+            return "In Azure Portal → App registrations: create an app, add a \"Mobile and desktop applications\" platform with the redirect URI below, and grant Microsoft Graph delegated Calendars.Read. Paste the Application (client) ID."
+        case .calendly:
+            return "In the Calendly developer portal: create an OAuth app with the redirect URI below, then paste its client ID and secret."
+        default:
+            return ""
+        }
+    }
+
+    private var consoleURL: URL? {
+        switch provider {
+        case .googleCalendar: return URL(string: "https://console.cloud.google.com/apis/credentials")
+        case .microsoftGraph: return URL(string: "https://portal.azure.com/")
+        case .calendly: return URL(string: "https://developer.calendly.com/")
+        default: return nil
         }
     }
 }

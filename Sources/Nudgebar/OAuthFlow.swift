@@ -27,6 +27,7 @@ final class OAuthFlow: NSObject {
 
     func authorize(
         metadata: OAuthProviderMetadata,
+        callbackScheme: String,
         clientSecret: String?,
         extraAuthParameters: [String: String] = [:]
     ) async throws -> OAuthTokens {
@@ -34,7 +35,7 @@ final class OAuthFlow: NSObject {
         let pkce = PKCEChallenge(verifier: verifier)
         let state = Self.randomToken(24)
         let authURL = Self.authorizationURL(metadata: metadata, challenge: pkce.challenge, state: state, extra: extraAuthParameters)
-        let callback = try await presentSession(url: authURL)
+        let callback = try await presentSession(url: authURL, callbackScheme: callbackScheme)
         let code = try Self.parseCallback(callback, expectedState: state)
         return try await exchangeCode(code, verifier: verifier, metadata: metadata, clientSecret: clientSecret)
     }
@@ -110,9 +111,9 @@ final class OAuthFlow: NSObject {
 
     // MARK: - Live legs
 
-    private func presentSession(url: URL) async throws -> URL {
+    private func presentSession(url: URL, callbackScheme: String) async throws -> URL {
         try await withCheckedThrowingContinuation { continuation in
-            let session = ASWebAuthenticationSession(url: url, callbackURLScheme: ConnectorConfig.redirectScheme) { callbackURL, error in
+            let session = ASWebAuthenticationSession(url: url, callbackURLScheme: callbackScheme) { callbackURL, error in
                 if let callbackURL {
                     continuation.resume(returning: callbackURL)
                 } else if let error = error as? ASWebAuthenticationSessionError, error.code == .canceledLogin {

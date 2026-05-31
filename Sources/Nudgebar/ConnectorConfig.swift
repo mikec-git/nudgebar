@@ -61,6 +61,33 @@ enum ConnectorConfig {
         return config
     }
 
+    static func save(_ config: ConnectorClientConfig) {
+        try? FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        if let data = try? encoder.encode(config) {
+            try? data.write(to: fileURL)
+        }
+    }
+
+    /// The OAuth redirect URI + callback scheme for a provider. Google only accepts
+    /// its reverse-DNS scheme (derived from the client ID); others use the app scheme.
+    static func redirect(for providerID: ProviderID, clientID: String) -> (uri: URL, scheme: String) {
+        let suffix = ".apps.googleusercontent.com"
+        if providerID == .googleCalendar, clientID.hasSuffix(suffix) {
+            let scheme = "com.googleusercontent.apps.\(clientID.replacingOccurrences(of: suffix, with: ""))"
+            return (URL(string: "\(scheme):/oauth")!, scheme)
+        }
+        return (redirectURI, redirectScheme)
+    }
+
+    /// Human-facing redirect URI to register in the provider's console.
+    static func redirectHint(for providerID: ProviderID) -> String {
+        providerID == .googleCalendar
+            ? "Auto-derived — create an \"iOS\" OAuth client (any bundle ID); no redirect entry needed."
+            : redirectURI.absoluteString
+    }
+
     /// True when the provider has the credentials it needs to connect.
     static func isConfigured(_ providerID: ProviderID, config: ConnectorClientConfig = load()) -> Bool {
         switch providerID {

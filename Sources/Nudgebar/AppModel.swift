@@ -142,17 +142,36 @@ final class AppModel: ObservableObject {
         Task { await performConnect(providerID) }
     }
 
+    /// Save an OAuth client ID/secret entered in the app's setup sheet.
+    func saveOAuthClient(providerID: ProviderID, clientID: String, clientSecret: String?) {
+        var config = ConnectorConfig.load()
+        let secret = (clientSecret?.isEmpty == false) ? clientSecret : nil
+        switch providerID {
+        case .googleCalendar: config.googleClientID = clientID; config.googleClientSecret = secret
+        case .microsoftGraph: config.microsoftClientID = clientID
+        case .calendly: config.calendlyClientID = clientID; config.calendlyClientSecret = secret
+        default: break
+        }
+        ConnectorConfig.save(config)
+        objectWillChange.send()
+    }
+
     private func performConnect(_ providerID: ProviderID) async {
         let config = ConnectorConfig.load()
-        guard let clientID = config.oauthClientID(for: providerID), !clientID.isEmpty,
-              let metadata = ProviderAuthCatalog.metadata(providerID: providerID, clientID: clientID, redirectURI: ConnectorConfig.redirectURI) else {
-            connectError = "\(providerID.displayName) isn't configured. Add its OAuth client ID to \(ConnectorConfig.fileURL.path)."
+        guard let clientID = config.oauthClientID(for: providerID), !clientID.isEmpty else {
+            connectError = "\(providerID.displayName) isn't set up yet. Add its OAuth client ID in Settings."
+            return
+        }
+        let (redirectURI, callbackScheme) = ConnectorConfig.redirect(for: providerID, clientID: clientID)
+        guard let metadata = ProviderAuthCatalog.metadata(providerID: providerID, clientID: clientID, redirectURI: redirectURI) else {
+            connectError = "Couldn't build the OAuth request for \(providerID.displayName)."
             return
         }
         do {
             let extra = providerID == .googleCalendar ? ["access_type": "offline", "prompt": "consent"] : [:]
             let tokens = try await oauthFlow.authorize(
                 metadata: metadata,
+                callbackScheme: callbackScheme,
                 clientSecret: config.oauthClientSecret(for: providerID),
                 extraAuthParameters: extra
             )
