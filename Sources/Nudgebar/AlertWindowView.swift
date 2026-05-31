@@ -2,23 +2,32 @@ import NudgebarCore
 import AppKit
 import SwiftUI
 
-/// Full-screen overlay: a warm translucent backdrop with the merged event cards
-/// and the bulk Snooze All / Dismiss All footer.
+/// Full-screen overlay: warm translucent backdrop, the Nudgebar wordmark, the
+/// merged event cards, and the bulk Snooze All / Dismiss All footer.
 struct AlertOverlayView: View {
     @ObservedObject var model: AlertWindowModel
 
-    private var defaultSnoozeMinutes: Int {
-        let presets = AlertPreferences.snoozePresetMinutes
-        return presets.count > 1 ? presets[1] : (presets.first ?? 5)
-    }
+    private var defaultSnoozeMinutes: Int { AlertPreferences.defaultSnoozeMinutes }
 
     var body: some View {
         ZStack {
             WarmBackdrop().ignoresSafeArea()
 
-            VStack(spacing: 24) {
+            VStack(spacing: 0) {
+                HStack {
+                    HStack(spacing: 9) {
+                        RingLogo(state: .active).frame(width: 22, height: 22)
+                        Wordmark(size: 17)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 40)
+                .padding(.top, 34)
+
+                Spacer(minLength: 12)
+
                 ScrollView {
-                    VStack(spacing: 16) {
+                    VStack(spacing: 18) {
                         ForEach(model.cards) { card in
                             AlertCardView(
                                 card: card,
@@ -28,21 +37,22 @@ struct AlertOverlayView: View {
                             )
                         }
                     }
-                    .frame(maxWidth: 640)
-                    .padding(40)
+                    .frame(maxWidth: 660)
+                    .padding(.horizontal, 40)
                 }
 
+                Spacer(minLength: 12)
+
                 if !model.cards.isEmpty {
-                    HStack(spacing: 16) {
-                        Button("Snooze All") { model.snoozeAll(minutes: defaultSnoozeMinutes) }
-                        Button("Dismiss All") { model.dismissAll() }
-                            .keyboardShortcut(.cancelAction)
+                    HStack(spacing: 12) {
+                        GhostButton(title: "Snooze All") { model.snoozeAll(minutes: defaultSnoozeMinutes) }
+                        GhostButton(title: "Dismiss All") { model.dismissAll() }
                     }
-                    .controlSize(.large)
-                    .padding(.bottom, 32)
+                    .padding(.bottom, 36)
                 }
             }
         }
+        .environment(\.colorScheme, .dark)
     }
 }
 
@@ -53,81 +63,74 @@ private struct AlertCardView: View {
     let onDismiss: () -> Void
 
     private var calendarColor: Color {
-        Color(hexString: card.event.calendarColorHex) ?? .accentColor
+        Color(hexString: card.event.calendarColorHex) ?? Brand.blush
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 8) {
-                Circle().fill(calendarColor).frame(width: 11, height: 11)
-                Text(card.event.calendarTitle)
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                if let remaining = card.remainingSeconds {
-                    CountdownBadge(seconds: remaining)
-                }
-            }
+        HStack(alignment: .top, spacing: 0) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(calendarColor)
+                .frame(width: 4)
+                .padding(.vertical, 4)
 
-            Text(card.event.title)
-                .font(.system(size: 40, weight: .bold))
-                .lineLimit(3)
-                .minimumScaleFactor(0.6)
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(card.event.title)
+                            .font(Brand.font(30, .semibold))
+                            .foregroundStyle(Brand.blush)
+                            .lineLimit(3)
+                            .minimumScaleFactor(0.6)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("\(card.event.startDate.formatted(date: .omitted, time: .shortened)) · \(durationLabel)")
-                    .font(.title3)
-                if let organizer = card.event.organizer, !organizer.isEmpty {
-                    Label(organizer, systemImage: "person.crop.circle")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                }
-                if let location = card.event.location, !location.isEmpty {
-                    Label(location, systemImage: "mappin.and.ellipse")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                }
-            }
+                        metaRow
 
-            HStack(spacing: 10) {
-                LeadPillLarge(seconds: card.event.startDate.timeIntervalSince(Date()))
-                if let conference = card.conference {
-                    ConferenceChip(label: conference.type.label)
-                }
-            }
-
-            HStack(spacing: 12) {
-                if let conference = card.conference {
-                    Button { onJoin(conference.url) } label: {
-                        Label("Join", systemImage: "video.fill")
+                        HStack(spacing: 8) {
+                            LeadPill(seconds: card.event.startDate.timeIntervalSince(Date()))
+                            if let conference = card.conference {
+                                ConferenceChip(label: conference.type.label)
+                            }
+                        }
                     }
-                    .buttonStyle(.borderedProminent)
-                }
-
-                Menu {
-                    ForEach(AlertPreferences.snoozePresetMinutes, id: \.self) { minutes in
-                        Button("\(minutes) min") { onSnooze(minutes) }
+                    Spacer(minLength: 16)
+                    if let remaining = card.remainingSeconds, let total = card.autoDismissTotal {
+                        CountdownRing(remaining: remaining, total: total)
                     }
-                } label: {
-                    Label("Snooze", systemImage: "zzz")
                 }
-                .frame(maxWidth: 130)
 
-                Button("Dismiss", action: onDismiss)
-                Spacer()
+                HStack(spacing: 10) {
+                    if let conference = card.conference {
+                        JoinButton { onJoin(conference.url) }
+                    }
+                    SnoozeMenu(onSnooze: onSnooze)
+                    GhostButton(title: "Dismiss", action: onDismiss)
+                    Spacer()
+                }
             }
-            .controlSize(.large)
+            .padding(24)
         }
-        .padding(28)
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(nsColor: .windowBackgroundColor))
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Brand.ember)
+                .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(card.isUrgent ? Brand.blush.opacity(0.55) : Brand.rule, lineWidth: card.isUrgent ? 2 : 1))
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(card.isUrgent ? Color.orange.opacity(0.9) : Color.clear, lineWidth: 3)
-        )
-        .shadow(color: .black.opacity(0.35), radius: 24, y: 12)
+        .shadow(color: .black.opacity(0.45), radius: 30, y: 16)
+    }
+
+    private var metaRow: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text("\(card.event.startDate.formatted(date: .omitted, time: .shortened)) · \(durationLabel)")
+                .font(Brand.font(15, .medium))
+                .foregroundStyle(Brand.sand)
+            HStack(spacing: 14) {
+                MetaItem(systemImage: "calendar", text: card.event.calendarTitle, dot: calendarColor)
+                if let organizer = card.event.organizer, !organizer.isEmpty {
+                    MetaItem(systemImage: "person.crop.circle", text: organizer)
+                }
+            }
+            if let location = card.event.location, !location.isEmpty {
+                MetaItem(systemImage: "mappin.and.ellipse", text: location)
+            }
+        }
     }
 
     private var durationLabel: String {
@@ -140,16 +143,55 @@ private struct AlertCardView: View {
     }
 }
 
-private struct LeadPillLarge: View {
+private struct MetaItem: View {
+    let systemImage: String
+    let text: String
+    var dot: Color?
+
+    var body: some View {
+        HStack(spacing: 5) {
+            if let dot {
+                Circle().fill(dot).frame(width: 8, height: 8)
+            } else {
+                Image(systemName: systemImage).font(.system(size: 12))
+            }
+            Text(text).font(Brand.font(13))
+        }
+        .foregroundStyle(Brand.stone)
+        .lineLimit(1)
+    }
+}
+
+private struct CountdownRing: View {
+    let remaining: Int
+    let total: Int
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(Brand.blush.opacity(0.14), lineWidth: 4)
+            Circle()
+                .trim(from: 0, to: total > 0 ? CGFloat(remaining) / CGFloat(total) : 0)
+                .stroke(Brand.blush, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            Text("\(remaining)s")
+                .font(Brand.font(13, .medium).monospacedDigit())
+                .foregroundStyle(Brand.sand)
+        }
+        .frame(width: 56, height: 56)
+        .animation(.linear(duration: 0.4), value: remaining)
+    }
+}
+
+private struct LeadPill: View {
     let seconds: TimeInterval
 
     var body: some View {
         Text(label)
-            .font(.callout.weight(.semibold))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 5)
-            .background(Capsule().fill(Color.accentColor.opacity(0.20)))
-            .foregroundStyle(Color.accentColor)
+            .font(Brand.font(12, .semibold))
+            .padding(.horizontal, 11)
+            .padding(.vertical, 4)
+            .background(Capsule().fill(Brand.blush.opacity(0.16)))
+            .foregroundStyle(Brand.blush)
     }
 
     private var label: String {
@@ -163,31 +205,84 @@ private struct ConferenceChip: View {
     let label: String
 
     var body: some View {
-        Label(label, systemImage: "video")
-            .font(.callout.weight(.medium))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 5)
-            .background(Capsule().fill(Color.primary.opacity(0.08)))
+        Label(label, systemImage: "video.fill")
+            .font(Brand.font(12, .medium))
+            .padding(.horizontal, 11)
+            .padding(.vertical, 4)
+            .background(Capsule().fill(Brand.blush.opacity(0.08)))
+            .foregroundStyle(Brand.sand)
     }
 }
 
-private struct CountdownBadge: View {
-    let seconds: Int
+private struct JoinButton: View {
+    let action: () -> Void
 
     var body: some View {
-        Label("\(seconds)s", systemImage: "timer")
-            .font(.caption.monospacedDigit())
-            .foregroundStyle(.secondary)
+        Button(action: action) {
+            Label("Join", systemImage: "video.fill")
+                .font(Brand.font(13, .semibold))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(Brand.blush))
+                .foregroundStyle(Brand.inkDeep)
+        }
+        .buttonStyle(.plain)
     }
 }
 
-/// Warm copper-toned translucent backdrop: a behind-window blur tinted toward the
-/// brand ember so the desktop reads faintly while card text stays at AA contrast.
+private struct SnoozeMenu: View {
+    let onSnooze: (Int) -> Void
+
+    var body: some View {
+        Menu {
+            ForEach(AlertPreferences.snoozePresetMinutes, id: \.self) { minutes in
+                Button("\(minutes) min") { onSnooze(minutes) }
+            }
+        } label: {
+            Label("Snooze", systemImage: "zzz")
+                .font(Brand.font(13, .medium))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .background(Capsule().fill(Brand.blush.opacity(0.10)))
+        .overlay(Capsule().strokeBorder(Brand.ruleStrong, lineWidth: 1))
+        .foregroundStyle(Brand.sand)
+    }
+}
+
+private struct GhostButton: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(Brand.font(13, .medium))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(Brand.blush.opacity(0.06)))
+                .overlay(Capsule().strokeBorder(Brand.ruleStrong, lineWidth: 1))
+                .foregroundStyle(Brand.sand)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Warm copper-toned translucent backdrop with a faint blush edge halo.
 private struct WarmBackdrop: View {
     var body: some View {
         ZStack {
             VisualEffectBackdrop()
-            Color(red: 0.176, green: 0.145, blue: 0.125).opacity(0.62)
+            Brand.inkDeep.opacity(0.66)
+            RadialGradient(
+                colors: [Brand.blush.opacity(0.10), .clear],
+                center: .center,
+                startRadius: 200,
+                endRadius: 900
+            )
+            .blendMode(.plusLighter)
         }
     }
 }

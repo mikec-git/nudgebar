@@ -41,6 +41,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.title = "Nudgebar Settings"
             window.styleMask = [.titled, .closable, .miniaturizable]
             window.isReleasedWhenClosed = false
+            window.backgroundColor = Brand.inkNSColor
+            window.appearance = NSAppearance(named: .darkAqua)
             window.center()
             settingsWindow = window
         }

@@ -1,8 +1,8 @@
 import NudgebarCore
 import SwiftUI
 
-/// Hybrid upcoming-events popover: a hero pair of the next one or two events over
-/// a compressed timeline of the rest, grouped Today / Tomorrow, with quick controls.
+/// Hybrid upcoming-events popover in the Nudgebar brand: a hero pair of the next
+/// one or two events over a compressed Today / Tomorrow timeline.
 struct UpcomingPopoverView: View {
     @EnvironmentObject private var model: AppModel
     @EnvironmentObject private var preferences: AlertPreferences
@@ -10,20 +10,34 @@ struct UpcomingPopoverView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            header
+
             if model.upcomingEvents.isEmpty {
-                EmptyStateView(
-                    calendarAuthorized: calendarAccess.isAuthorized,
-                    onGrantAccess: { model.requestCalendarAccess() }
-                )
+                emptyState
             } else {
                 eventList
             }
 
-            Divider()
-
+            Divider().overlay(Brand.rule)
             QuickControls(preferences: preferences, model: model)
         }
-        .frame(width: 320)
+        .frame(width: 340)
+        .background(Brand.ink)
+        .environment(\.colorScheme, .dark)
+    }
+
+    private var header: some View {
+        HStack(spacing: 9) {
+            RingLogo(state: .active).frame(width: 18, height: 18)
+            Wordmark(size: 15)
+            Spacer()
+            Text("Today · Tomorrow")
+                .font(Brand.font(11, .medium))
+                .foregroundStyle(Brand.stone)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 10)
     }
 
     private var eventList: some View {
@@ -34,115 +48,140 @@ struct UpcomingPopoverView: View {
         let truncated = model.upcomingEvents.count >= UpcomingEventsList.maxEntries
 
         return ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 ForEach(hero) { event in
-                    HeroEventCard(
+                    HeroCard(
                         event: event,
                         now: now,
-                        snoozed: model.snoozeStore.isSnoozed(eventID: event.id, now: now)
+                        snoozed: model.snoozeStore.isSnoozed(eventID: event.id, now: now),
+                        onJoin: { url in NSWorkspace.shared.open(url) }
                     )
                 }
 
                 if !rest.isEmpty {
-                    TimelineSection(grouped: grouped, now: now)
+                    TimelineSection(grouped: grouped)
                 }
 
                 if truncated {
                     Text("Showing the first \(UpcomingEventsList.maxEntries) events")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .font(Brand.font(11))
+                        .foregroundStyle(Brand.stone)
+                        .padding(.top, 2)
                 }
             }
-            .padding(12)
+            .padding(16)
         }
-        .frame(maxHeight: 360)
+        .frame(maxHeight: 380)
+    }
+
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            RingLogo(state: .idle).frame(width: 26, height: 26)
+            Text("All clear")
+                .font(Brand.font(17, .semibold))
+                .foregroundStyle(Brand.blush)
+            Text("No upcoming events")
+                .font(Brand.font(13))
+                .foregroundStyle(Brand.sand)
+            if !calendarAccess.isAuthorized {
+                Button("Grant Calendar Access") { model.requestCalendarAccess() }
+                    .buttonStyle(.plain)
+                    .font(Brand.font(13, .semibold))
+                    .foregroundStyle(Brand.blush)
+                    .padding(.top, 4)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
     }
 }
 
-private struct HeroEventCard: View {
+private struct HeroCard: View {
     let event: AlertCandidate
     let now: Date
     let snoozed: Bool
+    let onJoin: (URL) -> Void
+
+    private var calendarColor: Color { Color(hexString: event.calendarColorHex) ?? Brand.blush }
+    private var conference: ConferenceLink? {
+        ConferenceLinkResolver.resolve(meetingURL: event.meetingURL, location: event.location)
+    }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Circle()
-                .fill(Color.accentColor)
-                .frame(width: 8, height: 8)
-                .padding(.top, 5)
+        HStack(alignment: .top, spacing: 0) {
+            RoundedRectangle(cornerRadius: 2).fill(calendarColor).frame(width: 3).padding(.vertical, 2)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(event.title)
-                    .font(.headline)
-                    .lineLimit(2)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Circle().fill(calendarColor).frame(width: 7, height: 7)
+                    Text(event.calendarTitle).font(Brand.font(11, .medium)).foregroundStyle(Brand.stone).lineLimit(1)
+                    if snoozed {
+                        Image(systemName: "zzz").font(.system(size: 10)).foregroundStyle(Brand.stone)
+                    }
+                    Spacer()
+                    Text(event.startDate.formatted(date: .omitted, time: .shortened))
+                        .font(Brand.font(12, .medium)).foregroundStyle(Brand.sand)
+                }
+
+                Text(event.title).font(Brand.font(15, .semibold)).foregroundStyle(Brand.blush).lineLimit(2)
 
                 HStack(spacing: 8) {
-                    Text(event.startDate.formatted(date: .omitted, time: .shortened))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    LeadPill(seconds: event.startDate.timeIntervalSince(now))
-                    if snoozed {
-                        Label("Snoozed", systemImage: "zzz")
-                            .labelStyle(.iconOnly)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    LeadPillSmall(seconds: event.startDate.timeIntervalSince(now))
+                    if let location = event.location, !location.isEmpty, conference == nil {
+                        Text(location).font(Brand.font(11)).foregroundStyle(Brand.stone).lineLimit(1)
+                    }
+                    Spacer()
+                    if let conference {
+                        Button { onJoin(conference.url) } label: {
+                            Text("Join").font(Brand.font(12, .semibold))
+                                .padding(.horizontal, 12).padding(.vertical, 4)
+                                .background(Capsule().fill(Brand.blush))
+                                .foregroundStyle(Brand.inkDeep)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
-
-                if let location = event.location, !location.isEmpty {
-                    Text(location)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
             }
-
-            Spacer(minLength: 0)
+            .padding(.leading, 11)
+            .padding(.vertical, 11)
+            .padding(.trailing, 12)
         }
-        .padding(10)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Color.primary.opacity(0.06)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(Brand.ember))
     }
 }
 
-private struct LeadPill: View {
+private struct LeadPillSmall: View {
     let seconds: TimeInterval
 
     var body: some View {
         Text(label)
-            .font(.caption2.weight(.semibold))
-            .padding(.horizontal, 7)
-            .padding(.vertical, 2)
-            .background(Capsule().fill(Color.accentColor.opacity(0.18)))
-            .foregroundStyle(Color.accentColor)
+            .font(Brand.font(11, .semibold))
+            .padding(.horizontal, 8).padding(.vertical, 2)
+            .background(Capsule().fill(Brand.blush.opacity(0.16)))
+            .foregroundStyle(Brand.blush)
     }
 
     private var label: String {
-        if seconds <= 0 {
-            return "now"
-        }
+        if seconds <= 0 { return "Now" }
         let minutes = Int(ceil(seconds / 60))
-        if minutes < 60 {
-            return "In \(minutes)m"
-        }
-        let hours = minutes / 60
-        let mins = minutes % 60
-        return mins == 0 ? "In \(hours)h" : "In \(hours)h \(mins)m"
+        return minutes < 60 ? "In \(minutes)m" : "In \(minutes / 60)h \(minutes % 60)m"
     }
 }
 
 private struct TimelineSection: View {
     let grouped: [UpcomingEventsList.GroupedEvent]
-    let now: Date
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             ForEach([UpcomingEventsList.DayGroup.today, .tomorrow], id: \.rawValue) { day in
                 let items = grouped.filter { $0.group == day }
                 if !items.isEmpty {
-                    Text(day == .today ? "Today" : "Tomorrow")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 4)
+                    Text(day == .today ? "TODAY" : "TOMORROW")
+                        .font(Brand.font(10, .semibold))
+                        .kerning(0.6)
+                        .foregroundStyle(Brand.stone)
+                        .padding(.top, 8)
+                        .padding(.bottom, 2)
                     ForEach(items) { item in
                         TimelineRow(event: item.event)
                     }
@@ -154,39 +193,19 @@ private struct TimelineSection: View {
 
 private struct TimelineRow: View {
     let event: AlertCandidate
+    private var calendarColor: Color { Color(hexString: event.calendarColorHex) ?? Brand.sand }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 9) {
             Text(event.startDate.formatted(date: .omitted, time: .shortened))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(width: 64, alignment: .leading)
-            Text(event.title)
-                .font(.caption)
-                .lineLimit(1)
+                .font(Brand.font(12).monospacedDigit())
+                .foregroundStyle(Brand.sand)
+                .frame(width: 62, alignment: .leading)
+            Circle().fill(calendarColor).frame(width: 6, height: 6)
+            Text(event.title).font(Brand.font(12)).foregroundStyle(Brand.sand).lineLimit(1)
             Spacer(minLength: 0)
         }
-    }
-}
-
-private struct EmptyStateView: View {
-    let calendarAuthorized: Bool
-    let onGrantAccess: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("All clear")
-                .font(.headline)
-            Text("No upcoming events")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            if !calendarAuthorized {
-                Button("Grant Calendar Access", action: onGrantAccess)
-                    .padding(.top, 4)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
+        .padding(.vertical, 3)
     }
 }
 
@@ -195,29 +214,42 @@ private struct QuickControls: View {
     let model: AppModel
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 10) {
             Toggle("Full-screen alerts", isOn: Binding(
                 get: { preferences.fullScreenAlerts },
                 set: { preferences.fullScreenAlerts = $0 }
             ))
+            .font(Brand.font(13))
+            .tint(Brand.blush)
+            .foregroundStyle(Brand.sand)
 
-            Picker("Lead time", selection: Binding(
-                get: { preferences.leadMinutes },
-                set: { preferences.leadMinutes = $0; model.refreshUpcoming() }
-            )) {
-                ForEach(AlertPreferences.allowedLeadMinutes, id: \.self) { minutes in
-                    Text(minutes == 0 ? "At start" : "\(minutes) min").tag(minutes)
+            HStack {
+                Text("Lead time").font(Brand.font(13)).foregroundStyle(Brand.sand)
+                Spacer()
+                Menu {
+                    ForEach(AlertPreferences.allowedLeadMinutes, id: \.self) { minutes in
+                        Button(minutes == 0 ? "At start" : "\(minutes) min") {
+                            preferences.leadMinutes = minutes
+                            model.refreshUpcoming()
+                        }
+                    }
+                } label: {
+                    Text(preferences.leadMinutes == 0 ? "At start" : "\(preferences.leadMinutes) min")
+                        .font(Brand.font(12, .medium))
+                        .foregroundStyle(Brand.blush)
                 }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
             }
 
             HStack {
                 Button("Settings…") { model.openSettingsAction?() }
+                    .buttonStyle(.plain).font(Brand.font(13)).foregroundStyle(Brand.sand)
                 Spacer()
-                Button("Quit") {
-                    NSApp.terminate(nil)
-                }
+                Button("Quit") { NSApp.terminate(nil) }
+                    .buttonStyle(.plain).font(Brand.font(13)).foregroundStyle(Brand.stone)
             }
         }
-        .padding(12)
+        .padding(16)
     }
 }

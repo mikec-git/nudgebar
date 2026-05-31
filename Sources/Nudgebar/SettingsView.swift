@@ -16,6 +16,9 @@ struct SettingsView: View {
                 .tabItem { Label("Shortcuts", systemImage: "command") }
         }
         .frame(width: 560, height: 540)
+        .tint(Brand.blush)
+        .background(Brand.ink)
+        .environment(\.colorScheme, .dark)
         .onAppear { model.start() }
     }
 }
@@ -69,6 +72,7 @@ private struct GeneralTab: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
     }
 }
 
@@ -95,6 +99,7 @@ private struct ConnectorsTab: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
     }
 }
 
@@ -143,6 +148,7 @@ private struct AlertsTab: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
     }
 
     private func autoDismissLabel(_ seconds: Int) -> String {
@@ -243,6 +249,7 @@ private struct ShortcutsTab: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
     }
 
     private func beginRecording(_ action: ShortcutAction) {

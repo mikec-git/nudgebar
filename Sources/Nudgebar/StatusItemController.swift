@@ -20,6 +20,7 @@ final class StatusItemController: NSObject {
         super.init()
 
         popover.behavior = .transient
+        popover.appearance = NSAppearance(named: .darkAqua)
         popover.contentViewController = NSHostingController(
             rootView: UpcomingPopoverView()
                 .environmentObject(model)
@@ -104,17 +105,15 @@ final class StatusItemController: NSObject {
     }
 
     private static func glyph(for proximity: StatusItemProximity) -> NSImage? {
-        let symbolName: String
+        let state: RingState
         switch proximity {
         case .none:
-            symbolName = "calendar"
-        case .default:
-            symbolName = "calendar.badge.clock"
-        case .warning, .urgent:
-            symbolName = "calendar.badge.exclamationmark"
+            state = .idle
+        case .default, .warning:
+            state = .active
+        case .urgent:
+            state = .urgent
         }
-        let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Nudgebar")
-        image?.isTemplate = true
-        return image
+        return RingLogo.statusImage(state: state)
     }
 }

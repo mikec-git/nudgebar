@@ -11,6 +11,9 @@ final class AlertCardModel: ObservableObject, Identifiable {
     let conference: ConferenceLink?
     let isUrgent: Bool
 
+    /// Initial auto-dismiss duration, or nil when set to Never (drives the ring progress).
+    let autoDismissTotal: Int?
+
     /// Remaining auto-dismiss seconds, or nil when auto-dismiss is set to Never.
     @Published private(set) var remainingSeconds: Int?
 
@@ -33,8 +36,11 @@ final class AlertCardModel: ObservableObject, Identifiable {
         self.onExpire = onExpire
 
         if autoDismissSeconds != AlertPreferences.autoDismissNeverSentinel {
+            self.autoDismissTotal = autoDismissSeconds
             self.remainingSeconds = autoDismissSeconds
             startCountdown()
+        } else {
+            self.autoDismissTotal = nil
         }
     }
 
