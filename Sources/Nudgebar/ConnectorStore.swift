@@ -114,16 +114,21 @@ final class ConnectorStore: ObservableObject {
 enum ConnectorProviderFactory {
     static func make(account: ConnectedAccount, config: ConnectorClientConfig = ConnectorConfig.load()) -> CalendarSyncProvider? {
         switch account.providerID {
-        case .googleCalendar:
-            guard let clientID = config.googleClientID, !clientID.isEmpty,
-                  let metadata = ProviderAuthCatalog.metadata(providerID: .googleCalendar, clientID: clientID, redirectURI: ConnectorConfig.redirectURI) else {
+        case .googleCalendar, .microsoftGraph, .calendly:
+            guard let clientID = config.oauthClientID(for: account.providerID), !clientID.isEmpty,
+                  let metadata = ProviderAuthCatalog.metadata(providerID: account.providerID, clientID: clientID, redirectURI: ConnectorConfig.redirectURI) else {
                 return nil
             }
-            let reference = ConnectorCredentials.oauthRefreshReference(providerID: .googleCalendar, accountID: account.id)
-            let tokenManager = OAuthTokenManager(metadata: metadata, clientSecret: config.googleClientSecret, refreshReference: reference)
-            return GoogleCalendarProvider(account: account, tokenManager: tokenManager)
-        case .eventKit, .microsoftGraph, .calDAV, .calendly, .calCom, .acuity:
-            // Wired in as each provider's client comes online.
+            let reference = ConnectorCredentials.oauthRefreshReference(providerID: account.providerID, accountID: account.id)
+            let tokenManager = OAuthTokenManager(metadata: metadata, clientSecret: config.oauthClientSecret(for: account.providerID), refreshReference: reference)
+            switch account.providerID {
+            case .googleCalendar: return GoogleCalendarProvider(account: account, tokenManager: tokenManager)
+            case .microsoftGraph: return MicrosoftGraphProvider(account: account, tokenManager: tokenManager)
+            case .calendly: return CalendlyProvider(account: account, tokenManager: tokenManager)
+            default: return nil
+            }
+        case .eventKit, .calDAV, .calCom, .acuity:
+            // Credential-based providers are wired in as their clients come online.
             return nil
         }
     }

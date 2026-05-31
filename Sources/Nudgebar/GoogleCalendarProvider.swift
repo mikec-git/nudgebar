@@ -153,6 +153,14 @@ enum GoogleCalendarMapper {
         iso.formatOptions = [.withInternetDateTime]
         if let date = iso.date(from: raw) { return date }
 
+        // Strip fractional seconds of any digit count (e.g. ".000000") and retry.
+        if let dot = raw.firstIndex(of: ".") {
+            var end = raw.index(after: dot)
+            while end < raw.endIndex, raw[end].isNumber { end = raw.index(after: end) }
+            let stripped = raw.replacingCharacters(in: dot..<end, with: "")
+            if let date = iso.date(from: stripped) { return date }
+        }
+
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")

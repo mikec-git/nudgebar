@@ -308,7 +308,7 @@ private struct ConnectorsSection: View {
     @ObservedObject var connectorStore: ConnectorStore
 
     private let providers: [ProviderID] = [.eventKit, .googleCalendar, .microsoftGraph, .calDAV, .calendly, .calCom, .acuity]
-    private let implemented: Set<ProviderID> = [.eventKit, .googleCalendar]
+    private let implemented: Set<ProviderID> = [.eventKit, .googleCalendar, .microsoftGraph, .calendly]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
