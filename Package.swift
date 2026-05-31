@@ -80,6 +80,10 @@ let package = Package(
                 "NudgebarPersistence",
                 "NudgebarProviders"
             ]
+        ),
+        .testTarget(
+            name: "NudgebarTests",
+            dependencies: ["Nudgebar", "NudgebarCore"]
         )
     ],
     swiftLanguageModes: [.v5]
