@@ -308,7 +308,9 @@ private struct ConnectorsSection: View {
     @ObservedObject var connectorStore: ConnectorStore
 
     private let providers: [ProviderID] = [.eventKit, .googleCalendar, .microsoftGraph, .calDAV, .calendly, .calCom, .acuity]
-    private let implemented: Set<ProviderID> = [.eventKit, .googleCalendar, .microsoftGraph, .calendly]
+    private let implemented: Set<ProviderID> = [.eventKit, .googleCalendar, .microsoftGraph, .calendly, .calCom, .acuity, .calDAV]
+    private let oauthProviders: Set<ProviderID> = [.googleCalendar, .microsoftGraph, .calendly]
+    @State private var credentialProvider: ProviderID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -324,6 +326,17 @@ private struct ConnectorsSection: View {
             }
             Text("Add OAuth client IDs to \(ConnectorConfig.fileURL.path) to enable cloud connectors. Local calendars work via EventKit.")
                 .font(Brand.font(11)).foregroundStyle(Brand.stone)
+        }
+        .sheet(item: $credentialProvider) { provider in
+            CredentialEntrySheet(
+                provider: provider,
+                fields: model.credentialFields(for: provider),
+                onSubmit: { values in
+                    model.connectWithCredentials(providerID: provider, values: values)
+                    credentialProvider = nil
+                },
+                onCancel: { credentialProvider = nil }
+            )
         }
     }
 
@@ -358,11 +371,16 @@ private struct ConnectorsSection: View {
             }
         } else if !implemented.contains(provider) {
             Text("Coming soon").font(Brand.font(12)).foregroundStyle(Brand.stone)
-        } else if ConnectorConfig.isConfigured(provider) {
-            Button("Connect") { model.connect(providerID: provider) }
-                .buttonStyle(.plain).font(Brand.font(12, .semibold)).foregroundStyle(Brand.blush)
+        } else if oauthProviders.contains(provider) {
+            if ConnectorConfig.isConfigured(provider) {
+                Button("Connect") { model.connect(providerID: provider) }
+                    .buttonStyle(.plain).font(Brand.font(12, .semibold)).foregroundStyle(Brand.blush)
+            } else {
+                Text("Not configured").font(Brand.font(12)).foregroundStyle(Brand.stone)
+            }
         } else {
-            Text("Not configured").font(Brand.font(12)).foregroundStyle(Brand.stone)
+            Button("Connect") { credentialProvider = provider }
+                .buttonStyle(.plain).font(Brand.font(12, .semibold)).foregroundStyle(Brand.blush)
         }
     }
 
@@ -558,6 +576,49 @@ private struct AboutSection: View {
                 .font(Brand.font(13)).foregroundStyle(Brand.sand)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+}
+
+// MARK: - Credential entry
+
+private struct CredentialEntrySheet: View {
+    let provider: ProviderID
+    let fields: [ConnectorCredentialField]
+    let onSubmit: ([String: String]) -> Void
+    let onCancel: () -> Void
+    @State private var values: [String: String] = [:]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Connect \(provider.displayName)")
+                .font(Brand.font(16, .semibold)).foregroundStyle(Brand.blush)
+            ForEach(fields) { field in
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(field.label).font(Brand.font(11)).foregroundStyle(Brand.stone)
+                    Group {
+                        if field.isSecret {
+                            SecureField(field.label, text: binding(field.key))
+                        } else {
+                            TextField(field.label, text: binding(field.key))
+                        }
+                    }
+                    .textFieldStyle(.roundedBorder)
+                }
+            }
+            HStack {
+                Spacer()
+                Button("Cancel", action: onCancel).buttonStyle(.plain).foregroundStyle(Brand.stone)
+                Button("Connect") { onSubmit(values) }.buttonStyle(.borderedProminent).tint(Brand.blush)
+            }
+        }
+        .padding(20)
+        .frame(width: 380)
+        .background(Brand.ink)
+        .environment(\.colorScheme, .dark)
+    }
+
+    private func binding(_ key: String) -> Binding<String> {
+        Binding(get: { values[key] ?? "" }, set: { values[key] = $0 })
     }
 }
 

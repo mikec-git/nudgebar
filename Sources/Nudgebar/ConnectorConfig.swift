@@ -33,6 +33,14 @@ struct ConnectorClientConfig: Codable, Equatable {
     }
 }
 
+/// A field collected by the credential-entry sheet for non-OAuth connectors.
+struct ConnectorCredentialField: Identifiable, Equatable {
+    let key: String
+    let label: String
+    let isSecret: Bool
+    var id: String { key }
+}
+
 enum ConnectorConfig {
     /// Must match the CFBundleURLSchemes entry in Info.plist.
     static let redirectScheme = "com.local.nudgebar"

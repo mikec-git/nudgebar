@@ -127,8 +127,26 @@ enum ConnectorProviderFactory {
             case .calendly: return CalendlyProvider(account: account, tokenManager: tokenManager)
             default: return nil
             }
-        case .eventKit, .calDAV, .calCom, .acuity:
-            // Credential-based providers are wired in as their clients come online.
+        case .calCom:
+            guard let reference = account.credentialReference,
+                  let apiKey = ConnectorCredentials.read(reference: reference), !apiKey.isEmpty else {
+                return nil
+            }
+            return CalComProvider(account: account, apiKey: apiKey)
+        case .acuity:
+            guard let reference = account.credentialReference,
+                  let credentials = ConnectorCredentials.read(reference: reference), credentials.contains(":") else {
+                return nil
+            }
+            return AcuityProvider(account: account, credentials: credentials)
+        case .calDAV:
+            guard let reference = account.credentialReference,
+                  let credentials = ConnectorCredentials.read(reference: reference) else {
+                return nil
+            }
+            return CalDAVProvider(account: account, credentials: credentials)
+        case .eventKit:
+            // EventKit is handled directly by CalendarAccess.
             return nil
         }
     }

@@ -177,6 +177,62 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Fields the credential-entry sheet should collect for a non-OAuth provider.
+    func credentialFields(for providerID: ProviderID) -> [ConnectorCredentialField] {
+        switch providerID {
+        case .calCom:
+            return [ConnectorCredentialField(key: "apiKey", label: "API key", isSecret: true)]
+        case .acuity:
+            return [
+                ConnectorCredentialField(key: "userID", label: "User ID", isSecret: false),
+                ConnectorCredentialField(key: "apiKey", label: "API key", isSecret: true)
+            ]
+        case .calDAV:
+            return [
+                ConnectorCredentialField(key: "server", label: "Server URL", isSecret: false),
+                ConnectorCredentialField(key: "username", label: "Username", isSecret: false),
+                ConnectorCredentialField(key: "password", label: "App password", isSecret: true)
+            ]
+        case .eventKit, .googleCalendar, .microsoftGraph, .calendly:
+            return []
+        }
+    }
+
+    /// Connect a credential-based provider (API key / Basic auth) from entered values.
+    func connectWithCredentials(providerID: ProviderID, values: [String: String]) {
+        connectError = nil
+        let accountID = "\(providerID.rawValue)-\(UUID().uuidString.prefix(8))"
+        let secret: String
+        switch providerID {
+        case .calCom:
+            secret = values["apiKey"] ?? ""
+        case .acuity:
+            secret = "\(values["userID"] ?? ""):\(values["apiKey"] ?? "")"
+        case .calDAV:
+            secret = [values["server"], values["username"], values["password"]].compactMap { $0 }.joined(separator: "\u{1F}")
+        default:
+            secret = ""
+        }
+        guard secret.contains(where: { !$0.isWhitespace && $0 != ":" && $0 != "\u{1F}" }) else {
+            connectError = "Please fill in the \(providerID.displayName) credentials."
+            return
+        }
+        let reference = ConnectorCredentials.apiKeyReference(providerID: providerID, accountID: accountID)
+        do {
+            try ConnectorCredentials.save(secret, reference: reference, kind: .apiKey)
+        } catch {
+            connectError = error.localizedDescription
+            return
+        }
+        connectorStore.addAccount(ConnectedAccount(
+            id: accountID,
+            providerID: providerID,
+            displayName: providerID.displayName,
+            credentialReference: reference
+        ))
+        refreshUpcoming()
+    }
+
     func disconnect(providerID: ProviderID) {
         for account in connectorStore.accounts where account.providerID == providerID {
             if let reference = account.credentialReference {

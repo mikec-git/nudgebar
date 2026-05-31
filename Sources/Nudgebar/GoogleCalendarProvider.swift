@@ -161,6 +161,12 @@ enum GoogleCalendarMapper {
             if let date = iso.date(from: stripped) { return date }
         }
 
+        // RFC-822 style offset without a colon (e.g. Acuity's "-0800").
+        let offsetFormatter = DateFormatter()
+        offsetFormatter.locale = Locale(identifier: "en_US_POSIX")
+        offsetFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+        if let date = offsetFormatter.date(from: raw) { return date }
+
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")
