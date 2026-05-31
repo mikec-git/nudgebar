@@ -61,6 +61,9 @@ public struct AlertOccurrence: Codable, Equatable, Hashable, Identifiable, Senda
     public let endDate: Date
     public let calendarTitle: String
     public let location: String?
+    public let organizer: String?
+    public let calendarColorHex: String?
+    public let meetingURL: URL?
     public let providerID: ProviderID
     public let accountID: String?
     public let sourceID: String
@@ -88,7 +91,10 @@ public struct AlertOccurrence: Codable, Equatable, Hashable, Identifiable, Senda
         isAllDay: Bool = false,
         lastModified: Date? = nil,
         sequence: Int? = nil,
-        dedupeHints: [String] = []
+        dedupeHints: [String] = [],
+        organizer: String? = nil,
+        calendarColorHex: String? = nil,
+        meetingURL: URL? = nil
     ) {
         self.id = id
         self.title = title
@@ -96,6 +102,9 @@ public struct AlertOccurrence: Codable, Equatable, Hashable, Identifiable, Senda
         self.endDate = endDate
         self.calendarTitle = calendarTitle
         self.location = location
+        self.organizer = organizer
+        self.calendarColorHex = calendarColorHex
+        self.meetingURL = meetingURL
         self.providerID = providerID
         self.accountID = accountID
         self.sourceID = sourceID
@@ -112,6 +121,10 @@ public struct AlertOccurrence: Codable, Equatable, Hashable, Identifiable, Senda
         !isAllDay && status == .confirmed
     }
 
+    public var duration: TimeInterval {
+        endDate.timeIntervalSince(startDate)
+    }
+
     public var identity: ProviderIdentity {
         ProviderIdentity(
             providerID: providerID,
@@ -124,11 +137,14 @@ public struct AlertOccurrence: Codable, Equatable, Hashable, Identifiable, Senda
     public static func sample(now: Date = .now) -> AlertOccurrence {
         AlertOccurrence(
             id: "sample-alert",
-            title: "Upcoming event",
+            title: "Design review",
             startDate: now.addingTimeInterval(5 * 60),
             endDate: now.addingTimeInterval(35 * 60),
-            calendarTitle: "Sample Calendar",
-            location: "Conference Room"
+            calendarTitle: "Work",
+            location: "Conference Room A",
+            organizer: "Alex Rivera",
+            calendarColorHex: "#3A7BD5",
+            meetingURL: URL(string: "https://zoom.us/j/1234567890")
         )
     }
 }

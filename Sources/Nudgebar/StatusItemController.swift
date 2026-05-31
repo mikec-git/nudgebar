@@ -62,6 +62,11 @@ final class StatusItemController: NSObject {
         }
     }
 
+    /// Programmatic toggle for the Open-popover global shortcut.
+    func togglePopoverFromShortcut() {
+        togglePopover(nil)
+    }
+
     @objc private func togglePopover(_ sender: Any?) {
         guard let button = statusItem.button else {
             return

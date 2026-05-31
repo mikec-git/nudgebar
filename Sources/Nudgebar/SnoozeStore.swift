@@ -10,6 +10,12 @@ final class SnoozeStore: ObservableObject {
         snoozedUntil[eventID] = now.addingTimeInterval(interval)
     }
 
+    /// Snooze until an explicit deadline (used to collapse a snooze that would
+    /// otherwise extend past the event's start time).
+    func snooze(eventID: String, until: Date) {
+        snoozedUntil[eventID] = until
+    }
+
     func clear(eventID: String) {
         snoozedUntil.removeValue(forKey: eventID)
     }

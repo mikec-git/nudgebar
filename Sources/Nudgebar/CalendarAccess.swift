@@ -1,4 +1,5 @@
 import NudgebarCore
+import AppKit
 import Combine
 import EventKit
 import Foundation
@@ -155,7 +156,22 @@ final class CalendarAccess: ObservableObject {
             startDate: startDate,
             endDate: endDate,
             calendarTitle: event.calendar.title,
-            location: event.location
+            location: event.location,
+            sourceID: event.calendar.calendarIdentifier,
+            organizer: event.organizer?.name,
+            calendarColorHex: Self.hexString(from: event.calendar.cgColor),
+            meetingURL: event.url
         )
+    }
+
+    private static func hexString(from cgColor: CGColor?) -> String? {
+        guard let cgColor,
+              let nsColor = NSColor(cgColor: cgColor)?.usingColorSpace(.sRGB) else {
+            return nil
+        }
+        let red = Int((nsColor.redComponent * 255).rounded())
+        let green = Int((nsColor.greenComponent * 255).rounded())
+        let blue = Int((nsColor.blueComponent * 255).rounded())
+        return String(format: "#%02X%02X%02X", red, green, blue)
     }
 }

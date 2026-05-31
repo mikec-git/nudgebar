@@ -17,8 +17,15 @@ final class AppModel: ObservableObject {
         upcomingEvents.first
     }
 
+    private let notifier = NotificationDelivery()
+    private let previewPlayer = SoundPlayer()
     private var monitor: EventMonitor?
+    private var alertWindow: AlertWindowController?
     private var hasStarted = false
+
+    // macOS exposes no public Focus/DND API; the "respect Focus" toggle is the
+    // reliable control and this stays false (best-effort) until that changes.
+    private var focusActive: Bool { false }
 
     init(defaults: UserDefaults = .standard) {
         self.preferences = AlertPreferences(defaults: defaults)
@@ -33,12 +40,14 @@ final class AppModel: ObservableObject {
 
         hasStarted = true
         calendarAccess.refreshAuthorization()
+        notifier.requestAuthorization()
         refreshUpcoming()
 
         let monitor = EventMonitor(
             calendarAccess: calendarAccess,
             preferences: preferences,
-            presenter: presenter,
+            snoozeStore: snoozeStore,
+            present: { [weak self] event in self?.fireAlert(event: event) },
             onTick: { [weak self] in self?.refreshUpcoming() }
         )
         self.monitor = monitor
@@ -71,11 +80,63 @@ final class AppModel: ObservableObject {
         ticker.update(nextEventStart: nextUpcomingEvent?.startDate, now: now)
     }
 
-    func testAlert() {
-        presenter.present(
-            event: .sample(),
-            fullScreen: preferences.fullScreenAlerts
+    /// Route a due event through the delivery decision: full-screen window,
+    /// notification fallback, or suppressed.
+    func fireAlert(event: AlertCandidate) {
+        let decision = AlertDeliveryDecider.decide(
+            fullScreenEnabled: preferences.fullScreenAlerts,
+            respectFocus: preferences.respectFocus,
+            focusActive: focusActive,
+            notificationFallback: preferences.notificationFallbackEnabled
         )
+        switch decision {
+        case .fullScreen:
+            let sound = preferences.effectiveSettings(for: event).soundName
+            alertWindowController().present(
+                event: event,
+                autoDismissSeconds: preferences.autoDismissSeconds,
+                soundName: sound
+            )
+        case .notification:
+            notifier.deliver(event: event)
+        case .suppressed:
+            break
+        }
+    }
+
+    /// Snooze an event, capping the deadline at the event start so a long snooze
+    /// collapses to the start time.
+    func snooze(event: AlertCandidate, minutes: Int, now: Date = .now) {
+        let requested = now.addingTimeInterval(TimeInterval(max(0, minutes) * 60))
+        snoozeStore.snooze(eventID: event.id, until: min(requested, event.startDate))
+        refreshUpcoming(now: now)
+    }
+
+    func snoozeAllAlerts() {
+        alertWindow?.snoozeAllVisible(minutes: AlertPreferences.defaultSnoozeMinutes)
+    }
+
+    func dismissAllAlerts() {
+        alertWindow?.dismissAllVisible()
+    }
+
+    func previewSound(named name: String) {
+        previewPlayer.playOnce(name: name)
+    }
+
+    func testAlert() {
+        fireAlert(event: .sample())
+    }
+
+    private func alertWindowController() -> AlertWindowController {
+        if let alertWindow {
+            return alertWindow
+        }
+        let controller = AlertWindowController(onSnooze: { [weak self] event, minutes in
+            self?.snooze(event: event, minutes: minutes)
+        })
+        alertWindow = controller
+        return controller
     }
 }
 
@@ -83,7 +144,8 @@ final class AppModel: ObservableObject {
 final class EventMonitor {
     private let calendarAccess: CalendarAccess
     private let preferences: AlertPreferences
-    private let presenter: AlertPresenter
+    private let snoozeStore: SnoozeStore
+    private let present: @MainActor (AlertCandidate) -> Void
     private let onTick: @MainActor () -> Void
     private var task: Task<Void, Never>?
     private var alertedEvents: [String: Date] = [:]
@@ -91,12 +153,14 @@ final class EventMonitor {
     init(
         calendarAccess: CalendarAccess,
         preferences: AlertPreferences,
-        presenter: AlertPresenter,
+        snoozeStore: SnoozeStore,
+        present: @escaping @MainActor (AlertCandidate) -> Void,
         onTick: @escaping @MainActor () -> Void = {}
     ) {
         self.calendarAccess = calendarAccess
         self.preferences = preferences
-        self.presenter = presenter
+        self.snoozeStore = snoozeStore
+        self.present = present
         self.onTick = onTick
     }
 
@@ -129,23 +193,39 @@ final class EventMonitor {
         }
 
         let now = Date()
-        let endDate = now.addingTimeInterval(max(preferences.leadTime, 60))
+
+        // Re-admit events whose snooze has elapsed so they can fire again.
+        for (id, until) in snoozeStore.snoozedUntil where until <= now {
+            alertedEvents.removeValue(forKey: id)
+            snoozeStore.clear(eventID: id)
+        }
+
+        // Look ahead by the largest effective lead so per-calendar overrides are covered.
+        let lookAhead = max(preferences.maxEffectiveLeadSeconds, 60)
+        let endDate = now.addingTimeInterval(lookAhead)
         let enabledCalendarIDs = preferences.enabledCalendarIDs(from: calendarAccess.calendars)
         let upcomingEvents = calendarAccess.upcomingEvents(
             from: now,
             to: endDate,
             enabledCalendarIDs: enabledCalendarIDs
         )
-        let dueEvents = AlertPolicy.eventsToAlert(
-            events: upcomingEvents,
-            now: now,
-            leadTime: preferences.leadTime,
-            alertedIDs: Set(alertedEvents.keys)
-        )
+
+        let activeSnoozes = Set(snoozeStore.snoozedUntil.filter { $0.value > now }.keys)
+        let suppressed = Set(alertedEvents.keys).union(activeSnoozes)
+
+        let dueEvents = upcomingEvents
+            .filter { event in
+                guard event.isAlertable, !suppressed.contains(event.id) else {
+                    return false
+                }
+                let lead = TimeInterval(max(0, preferences.effectiveSettings(for: event).leadMinutes) * 60)
+                return event.startDate >= now && event.startDate <= now.addingTimeInterval(lead)
+            }
+            .sorted { $0.startDate < $1.startDate }
 
         for event in dueEvents {
             alertedEvents[event.id] = event.startDate
-            presenter.present(event: event, fullScreen: preferences.fullScreenAlerts)
+            present(event)
         }
 
         pruneAlertHistory(relativeTo: now)
