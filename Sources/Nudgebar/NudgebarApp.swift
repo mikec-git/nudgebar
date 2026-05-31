@@ -4,24 +4,23 @@ import SwiftUI
 @main
 struct NudgebarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var model = AppModel()
 
     var body: some Scene {
-        MenuBarExtra("Nudgebar", systemImage: "calendar.badge.clock") {
-            MenuBarView()
-                .environmentObject(model)
-        }
-        .menuBarExtraStyle(.menu)
-
         Settings {
             SettingsView()
-                .environmentObject(model)
+                .environmentObject(appDelegate.model)
         }
     }
 }
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    let model = AppModel()
+    private var statusItemController: StatusItemController?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        model.start()
+        statusItemController = StatusItemController(model: model)
     }
 }

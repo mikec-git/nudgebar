@@ -7,6 +7,15 @@ final class AppModel: ObservableObject {
     let preferences: AlertPreferences
     let calendarAccess: CalendarAccess
     let presenter: AlertPresenter
+    let ticker = CountdownTicker()
+    let snoozeStore = SnoozeStore()
+
+    /// Upcoming events from now through end of tomorrow, sorted ascending, capped at 25.
+    @Published private(set) var upcomingEvents: [AlertCandidate] = []
+
+    var nextUpcomingEvent: AlertCandidate? {
+        upcomingEvents.first
+    }
 
     private var monitor: EventMonitor?
     private var hasStarted = false
@@ -24,11 +33,13 @@ final class AppModel: ObservableObject {
 
         hasStarted = true
         calendarAccess.refreshAuthorization()
+        refreshUpcoming()
 
         let monitor = EventMonitor(
             calendarAccess: calendarAccess,
             preferences: preferences,
-            presenter: presenter
+            presenter: presenter,
+            onTick: { [weak self] in self?.refreshUpcoming() }
         )
         self.monitor = monitor
         monitor.start()
@@ -37,11 +48,27 @@ final class AppModel: ObservableObject {
     func requestCalendarAccess() {
         Task {
             await calendarAccess.requestAccess()
+            refreshUpcoming()
         }
     }
 
     func refreshCalendars() {
         calendarAccess.refreshAuthorization()
+        refreshUpcoming()
+    }
+
+    /// Recompute the upcoming-events window and refresh the countdown cadence.
+    func refreshUpcoming(now: Date = .now) {
+        let windowEnd = UpcomingEventsList.endOfTomorrow(from: now)
+        let enabledCalendarIDs = preferences.enabledCalendarIDs(from: calendarAccess.calendars)
+        let events = calendarAccess.upcomingEvents(
+            from: now,
+            to: windowEnd,
+            enabledCalendarIDs: enabledCalendarIDs
+        )
+        snoozeStore.clearExpired(now: now)
+        upcomingEvents = UpcomingEventsList.filter(events, now: now)
+        ticker.update(nextEventStart: nextUpcomingEvent?.startDate, now: now)
     }
 
     func testAlert() {
@@ -57,17 +84,20 @@ final class EventMonitor {
     private let calendarAccess: CalendarAccess
     private let preferences: AlertPreferences
     private let presenter: AlertPresenter
+    private let onTick: @MainActor () -> Void
     private var task: Task<Void, Never>?
     private var alertedEvents: [String: Date] = [:]
 
     init(
         calendarAccess: CalendarAccess,
         preferences: AlertPreferences,
-        presenter: AlertPresenter
+        presenter: AlertPresenter,
+        onTick: @escaping @MainActor () -> Void = {}
     ) {
         self.calendarAccess = calendarAccess
         self.preferences = preferences
         self.presenter = presenter
+        self.onTick = onTick
     }
 
     deinit {
@@ -94,6 +124,7 @@ final class EventMonitor {
         calendarAccess.refreshAuthorization()
 
         guard calendarAccess.isAuthorized else {
+            onTick()
             return
         }
 
@@ -118,6 +149,7 @@ final class EventMonitor {
         }
 
         pruneAlertHistory(relativeTo: now)
+        onTick()
     }
 
     private func pruneAlertHistory(relativeTo now: Date) {
