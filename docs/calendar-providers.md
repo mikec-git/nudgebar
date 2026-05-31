@@ -1,6 +1,6 @@
 # Calendar Provider Strategy
 
-AlertBar should not be an EventKit-only app. EventKit is the fastest local connector for calendars already configured on the Mac, but the MVP should also support direct cloud providers, standards-based CalDAV servers, and scheduling APIs.
+Nudgebar should not be an EventKit-only app. EventKit is the fastest local connector for calendars already configured on the Mac, but the MVP should also support direct cloud providers, standards-based CalDAV servers, and scheduling APIs.
 
 ## MVP Providers
 
@@ -29,9 +29,9 @@ Most custom calendar software falls into one of three integration shapes:
 
 - It exposes CalDAV. Treat it as a CalDAV account.
 - It exposes a scheduling API. Add it as a scheduling provider.
-- It exposes a proprietary REST/GraphQL API. Add a provider module that maps its events into `AlertCandidate`.
+- It exposes a proprietary REST/GraphQL API. Add a provider module that maps its events into `AlertOccurrence`.
 
-The provider contract in `Sources/AlertBar/CalendarProvider.swift` keeps those connectors behind the same list-calendar and list-events interface.
+The provider contract in `Sources/NudgebarProviders/CalendarSyncProvider.swift` keeps those connectors behind the same discovery and sync interface.
 
 ## Notes From Primary Docs
 

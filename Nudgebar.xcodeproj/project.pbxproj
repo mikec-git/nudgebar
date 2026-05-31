@@ -1,0 +1,406 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AB0000010000000000000001 /* NudgebarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000020000000000000001 /* NudgebarApp.swift */; };
+		AB0000010000000000000002 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000020000000000000002 /* AppModel.swift */; };
+		AB0000010000000000000003 /* AlertPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000020000000000000003 /* AlertPreferences.swift */; };
+		AB0000010000000000000004 /* AlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000020000000000000004 /* AlertPresenter.swift */; };
+		AB0000010000000000000005 /* CalendarAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000020000000000000005 /* CalendarAccess.swift */; };
+		AB0000010000000000000006 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000020000000000000006 /* MenuBarView.swift */; };
+		AB0000010000000000000007 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000020000000000000007 /* SettingsView.swift */; };
+		AB0000010000000000000008 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB0000020000000000000008 /* Assets.xcassets */; };
+		AB0000010000000000000009 /* NudgebarCore in Frameworks */ = {isa = PBXBuildFile; productRef = AB0000090000000000000001 /* NudgebarCore */; };
+		AB0000010000000000000010 /* NudgebarAuth in Frameworks */ = {isa = PBXBuildFile; productRef = AB0000090000000000000002 /* NudgebarAuth */; };
+		AB0000010000000000000011 /* NudgebarPersistence in Frameworks */ = {isa = PBXBuildFile; productRef = AB0000090000000000000003 /* NudgebarPersistence */; };
+		AB0000010000000000000012 /* NudgebarProviders in Frameworks */ = {isa = PBXBuildFile; productRef = AB0000090000000000000004 /* NudgebarProviders */; };
+		AB0000010000000000000013 /* NudgebarMacOSSupport in Frameworks */ = {isa = PBXBuildFile; productRef = AB0000090000000000000005 /* NudgebarMacOSSupport */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		AB0000020000000000000001 /* NudgebarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NudgebarApp.swift; sourceTree = "<group>"; };
+		AB0000020000000000000002 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		AB0000020000000000000003 /* AlertPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPreferences.swift; sourceTree = "<group>"; };
+		AB0000020000000000000004 /* AlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenter.swift; sourceTree = "<group>"; };
+		AB0000020000000000000005 /* CalendarAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarAccess.swift; sourceTree = "<group>"; };
+		AB0000020000000000000006 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		AB0000020000000000000007 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AB0000020000000000000008 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AB0000020000000000000009 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AB0000020000000000000010 /* Nudgebar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Nudgebar.entitlements; sourceTree = "<group>"; };
+		AB0000020000000000000011 /* Nudgebar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nudgebar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB0000020000000000000012 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = text; path = Package.swift; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AB0000030000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB0000010000000000000009 /* NudgebarCore in Frameworks */,
+				AB0000010000000000000010 /* NudgebarAuth in Frameworks */,
+				AB0000010000000000000011 /* NudgebarPersistence in Frameworks */,
+				AB0000010000000000000012 /* NudgebarProviders in Frameworks */,
+				AB0000010000000000000013 /* NudgebarMacOSSupport in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AB0000040000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				AB0000040000000000000002 /* Sources */,
+				AB0000040000000000000003 /* Resources */,
+				AB0000020000000000000012 /* Package.swift */,
+				AB0000040000000000000004 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AB0000040000000000000002 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000040000000000000005 /* Nudgebar */,
+			);
+			path = Sources;
+			sourceTree = SOURCE_ROOT;
+		};
+		AB0000040000000000000003 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000020000000000000008 /* Assets.xcassets */,
+				AB0000020000000000000009 /* Info.plist */,
+				AB0000020000000000000010 /* Nudgebar.entitlements */,
+			);
+			path = Resources;
+			sourceTree = SOURCE_ROOT;
+		};
+		AB0000040000000000000004 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000020000000000000011 /* Nudgebar.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		AB0000040000000000000005 /* Nudgebar */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000020000000000000001 /* NudgebarApp.swift */,
+				AB0000020000000000000002 /* AppModel.swift */,
+				AB0000020000000000000003 /* AlertPreferences.swift */,
+				AB0000020000000000000004 /* AlertPresenter.swift */,
+				AB0000020000000000000005 /* CalendarAccess.swift */,
+				AB0000020000000000000006 /* MenuBarView.swift */,
+				AB0000020000000000000007 /* SettingsView.swift */,
+			);
+			path = Nudgebar;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AB0000050000000000000001 /* Nudgebar */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AB0000060000000000000001 /* Build configuration list for PBXNativeTarget "Nudgebar" */;
+			buildPhases = (
+				AB0000080000000000000001 /* Sources */,
+				AB0000030000000000000001 /* Frameworks */,
+				AB0000080000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Nudgebar;
+			packageProductDependencies = (
+				AB0000090000000000000001 /* NudgebarCore */,
+				AB0000090000000000000002 /* NudgebarAuth */,
+				AB0000090000000000000003 /* NudgebarPersistence */,
+				AB0000090000000000000004 /* NudgebarProviders */,
+				AB0000090000000000000005 /* NudgebarMacOSSupport */,
+			);
+			productName = Nudgebar;
+			productReference = AB0000020000000000000011 /* Nudgebar.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AB0000070000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					AB0000050000000000000001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = AB0000060000000000000002 /* Build configuration list for PBXProject "Nudgebar" */;
+			compatibilityVersion = "Xcode 15.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AB0000040000000000000001;
+			packageReferences = (
+				AB0000100000000000000001 /* XCLocalSwiftPackageReference "." */,
+			);
+			productRefGroup = AB0000040000000000000004 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AB0000050000000000000001 /* Nudgebar */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AB0000080000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB0000010000000000000008 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AB0000080000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB0000010000000000000001 /* NudgebarApp.swift in Sources */,
+				AB0000010000000000000002 /* AppModel.swift in Sources */,
+				AB0000010000000000000003 /* AlertPreferences.swift in Sources */,
+				AB0000010000000000000004 /* AlertPresenter.swift in Sources */,
+				AB0000010000000000000005 /* CalendarAccess.swift in Sources */,
+				AB0000010000000000000006 /* MenuBarView.swift in Sources */,
+				AB0000010000000000000007 /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		AB0000110000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AB0000110000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		AB0000110000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Resources/Nudgebar.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.local.Nudgebar;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AB0000110000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Resources/Nudgebar.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.local.Nudgebar;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AB0000060000000000000001 /* Build configuration list for PBXNativeTarget "Nudgebar" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AB0000110000000000000003 /* Debug */,
+				AB0000110000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AB0000060000000000000002 /* Build configuration list for PBXProject "Nudgebar" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AB0000110000000000000001 /* Debug */,
+				AB0000110000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		AB0000100000000000000001 /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = .;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AB0000090000000000000001 /* NudgebarCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AB0000100000000000000001 /* XCLocalSwiftPackageReference "." */;
+			productName = NudgebarCore;
+		};
+		AB0000090000000000000002 /* NudgebarAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AB0000100000000000000001 /* XCLocalSwiftPackageReference "." */;
+			productName = NudgebarAuth;
+		};
+		AB0000090000000000000003 /* NudgebarPersistence */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AB0000100000000000000001 /* XCLocalSwiftPackageReference "." */;
+			productName = NudgebarPersistence;
+		};
+		AB0000090000000000000004 /* NudgebarProviders */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AB0000100000000000000001 /* XCLocalSwiftPackageReference "." */;
+			productName = NudgebarProviders;
+		};
+		AB0000090000000000000005 /* NudgebarMacOSSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AB0000100000000000000001 /* XCLocalSwiftPackageReference "." */;
+			productName = NudgebarMacOSSupport;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = AB0000070000000000000001 /* Project object */;
+}

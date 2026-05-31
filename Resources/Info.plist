@@ -5,13 +5,13 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleExecutable</key>
-	<string>AlertBar</string>
+	<string>Nudgebar</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.local.AlertBar</string>
+	<string>com.local.Nudgebar</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>AlertBar</string>
+	<string>Nudgebar</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -23,9 +23,9 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>AlertBar needs calendar access to show full-screen reminders before meetings and events.</string>
+	<string>Nudgebar needs calendar access to show full-screen reminders before meetings and events.</string>
 	<key>NSCalendarsUsageDescription</key>
-	<string>AlertBar needs calendar access to show full-screen reminders before meetings and events.</string>
+	<string>Nudgebar needs calendar access to show full-screen reminders before meetings and events.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>
