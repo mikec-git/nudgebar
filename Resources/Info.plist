@@ -14,6 +14,17 @@
 	<string>Nudgebar</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.local.Nudgebar.oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.local.nudgebar</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleShortVersionString</key>
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>

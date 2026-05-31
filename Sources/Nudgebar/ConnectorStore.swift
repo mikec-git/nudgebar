@@ -112,8 +112,19 @@ final class ConnectorStore: ObservableObject {
 /// when the provider isn't configured/credentialed yet (real clients are added
 /// per provider).
 enum ConnectorProviderFactory {
-    static func make(account: ConnectedAccount) -> CalendarSyncProvider? {
-        // Real clients are wired here per provider as they come online.
-        nil
+    static func make(account: ConnectedAccount, config: ConnectorClientConfig = ConnectorConfig.load()) -> CalendarSyncProvider? {
+        switch account.providerID {
+        case .googleCalendar:
+            guard let clientID = config.googleClientID, !clientID.isEmpty,
+                  let metadata = ProviderAuthCatalog.metadata(providerID: .googleCalendar, clientID: clientID, redirectURI: ConnectorConfig.redirectURI) else {
+                return nil
+            }
+            let reference = ConnectorCredentials.oauthRefreshReference(providerID: .googleCalendar, accountID: account.id)
+            let tokenManager = OAuthTokenManager(metadata: metadata, clientSecret: config.googleClientSecret, refreshReference: reference)
+            return GoogleCalendarProvider(account: account, tokenManager: tokenManager)
+        case .eventKit, .microsoftGraph, .calDAV, .calendly, .calCom, .acuity:
+            // Wired in as each provider's client comes online.
+            return nil
+        }
     }
 }

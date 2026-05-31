@@ -55,7 +55,7 @@ struct SettingsView: View {
         switch section {
         case .general: GeneralSection(model: model, preferences: model.preferences)
         case .calendars: CalendarsSection(model: model, preferences: model.preferences, calendarAccess: model.calendarAccess)
-        case .connectors: ConnectorsSection()
+        case .connectors: ConnectorsSection(model: model, connectorStore: model.connectorStore)
         case .alerts: AlertsSection(model: model, preferences: model.preferences)
         case .shortcuts: ShortcutsSection(preferences: model.preferences)
         case .about: AboutSection()
@@ -304,75 +304,90 @@ private struct CalendarRuleRow: View {
 // MARK: - Connectors
 
 private struct ConnectorsSection: View {
-    private struct Provider: Identifiable {
-        let id: String
-        let name: String
-        let detail: String
-        let symbol: String
-        var connected = false
-        var beta = false
-    }
+    @ObservedObject var model: AppModel
+    @ObservedObject var connectorStore: ConnectorStore
 
-    private let providers: [Provider] = [
-        Provider(id: "eventkit", name: "macOS Calendar", detail: "Local calendars on this Mac", symbol: "calendar", connected: true),
-        Provider(id: "google", name: "Google Calendar", detail: "Connect your Google account", symbol: "g.circle"),
-        Provider(id: "microsoft", name: "Microsoft Outlook / Exchange", detail: "Microsoft 365 or Exchange Online", symbol: "m.circle"),
-        Provider(id: "caldav", name: "CalDAV", detail: "Any standards-based CalDAV server", symbol: "server.rack"),
-        Provider(id: "calendly", name: "Calendly", detail: "Scheduled bookings", symbol: "c.circle", beta: true),
-        Provider(id: "calcom", name: "Cal.com", detail: "Scheduled bookings", symbol: "c.square", beta: true),
-        Provider(id: "acuity", name: "Acuity Scheduling", detail: "Scheduled appointments", symbol: "a.circle", beta: true)
-    ]
+    private let providers: [ProviderID] = [.eventKit, .googleCalendar, .microsoftGraph, .calDAV, .calendly, .calCom, .acuity]
+    private let implemented: Set<ProviderID> = [.eventKit, .googleCalendar]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             SectionHeader(title: "Connectors", subtitle: "Where Nudgebar reads your events.")
             SettingsGroup(eyebrow: "Sources") {
-                ForEach(Array(providers.enumerated()), id: \.element.id) { index, provider in
+                ForEach(Array(providers.enumerated()), id: \.element) { index, provider in
                     if index > 0 { RowDivider() }
-                    ConnectorRow(
-                        name: provider.name,
-                        detail: provider.detail,
-                        symbol: provider.symbol,
-                        connected: provider.connected,
-                        beta: provider.beta
-                    )
+                    row(provider)
                 }
             }
-            Text("Cloud connectors require connecting an account. Local macOS calendars work out of the box via EventKit.")
+            if let error = model.connectError {
+                Text(error).font(Brand.font(11)).foregroundStyle(.red).padding(.bottom, 8)
+            }
+            Text("Add OAuth client IDs to \(ConnectorConfig.fileURL.path) to enable cloud connectors. Local calendars work via EventKit.")
                 .font(Brand.font(11)).foregroundStyle(Brand.stone)
         }
     }
-}
 
-private struct ConnectorRow: View {
-    let name: String
-    let detail: String
-    let symbol: String
-    let connected: Bool
-    let beta: Bool
-
-    var body: some View {
+    @ViewBuilder
+    private func row(_ provider: ProviderID) -> some View {
+        let connected = provider == .eventKit || connectorStore.account(for: provider) != nil
+        let beta = [ProviderID.calendly, .calCom, .acuity].contains(provider)
         HStack(spacing: 12) {
-            Image(systemName: symbol)
-                .font(.system(size: 18))
-                .foregroundStyle(Brand.sand)
-                .frame(width: 26)
+            Image(systemName: symbol(provider)).font(.system(size: 18)).foregroundStyle(Brand.sand).frame(width: 26)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(name).font(Brand.font(13, .medium)).foregroundStyle(Brand.blush)
+                    Text(provider.displayName).font(Brand.font(13, .medium)).foregroundStyle(Brand.blush)
                     if beta { Badge(text: "BETA", color: Brand.stone) }
                 }
-                Text(detail).font(Brand.font(11)).foregroundStyle(Brand.stone)
+                Text(detail(provider)).font(Brand.font(11)).foregroundStyle(Brand.stone)
             }
             Spacer()
-            if connected {
-                Badge(text: "Connected", color: Color(brandHex: 0x57C97A))
-            } else {
-                Text("Connect").font(Brand.font(12, .semibold)).foregroundStyle(Brand.blush)
-            }
+            trailing(provider, connected: connected)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 14).padding(.vertical, 11)
+    }
+
+    @ViewBuilder
+    private func trailing(_ provider: ProviderID, connected: Bool) -> some View {
+        if provider == .eventKit {
+            Badge(text: "Connected", color: Color(brandHex: 0x57C97A))
+        } else if connected {
+            HStack(spacing: 8) {
+                Badge(text: "Connected", color: Color(brandHex: 0x57C97A))
+                Button("Disconnect") { model.disconnect(providerID: provider) }
+                    .buttonStyle(.plain).font(Brand.font(12, .medium)).foregroundStyle(Brand.stone)
+            }
+        } else if !implemented.contains(provider) {
+            Text("Coming soon").font(Brand.font(12)).foregroundStyle(Brand.stone)
+        } else if ConnectorConfig.isConfigured(provider) {
+            Button("Connect") { model.connect(providerID: provider) }
+                .buttonStyle(.plain).font(Brand.font(12, .semibold)).foregroundStyle(Brand.blush)
+        } else {
+            Text("Not configured").font(Brand.font(12)).foregroundStyle(Brand.stone)
+        }
+    }
+
+    private func symbol(_ provider: ProviderID) -> String {
+        switch provider {
+        case .eventKit: "calendar"
+        case .googleCalendar: "g.circle"
+        case .microsoftGraph: "m.circle"
+        case .calDAV: "server.rack"
+        case .calendly: "c.circle"
+        case .calCom: "c.square"
+        case .acuity: "a.circle"
+        }
+    }
+
+    private func detail(_ provider: ProviderID) -> String {
+        switch provider {
+        case .eventKit: "Local calendars on this Mac"
+        case .googleCalendar: "Connect your Google account"
+        case .microsoftGraph: "Microsoft 365 or Exchange"
+        case .calDAV: "Standards-based CalDAV server"
+        case .calendly: "Scheduled bookings"
+        case .calCom: "Scheduled bookings"
+        case .acuity: "Scheduled appointments"
+        }
     }
 }
 

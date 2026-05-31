@@ -1,3 +1,4 @@
+import NudgebarAuth
 import NudgebarCore
 import Combine
 import Foundation
@@ -20,6 +21,9 @@ final class AppModel: ObservableObject {
 
     /// Set by the app delegate to open the settings window from the popover/menu.
     var openSettingsAction: (() -> Void)?
+
+    @Published var connectError: String?
+    private let oauthFlow = OAuthFlow()
 
     private let notifier = NotificationDelivery()
     private let previewPlayer = SoundPlayer()
@@ -130,6 +134,57 @@ final class AppModel: ObservableObject {
 
     func dismissAllAlerts() {
         alertWindow?.dismissAllVisible()
+    }
+
+    /// Connect a cloud provider via OAuth, store its refresh token, and start syncing.
+    func connect(providerID: ProviderID) {
+        connectError = nil
+        Task { await performConnect(providerID) }
+    }
+
+    private func performConnect(_ providerID: ProviderID) async {
+        let config = ConnectorConfig.load()
+        guard let clientID = config.oauthClientID(for: providerID), !clientID.isEmpty,
+              let metadata = ProviderAuthCatalog.metadata(providerID: providerID, clientID: clientID, redirectURI: ConnectorConfig.redirectURI) else {
+            connectError = "\(providerID.displayName) isn't configured. Add its OAuth client ID to \(ConnectorConfig.fileURL.path)."
+            return
+        }
+        do {
+            let extra = providerID == .googleCalendar ? ["access_type": "offline", "prompt": "consent"] : [:]
+            let tokens = try await oauthFlow.authorize(
+                metadata: metadata,
+                clientSecret: config.oauthClientSecret(for: providerID),
+                extraAuthParameters: extra
+            )
+            guard let refreshToken = tokens.refreshToken else {
+                connectError = "\(providerID.displayName) did not return a refresh token (re-consent may be required)."
+                return
+            }
+            let accountID = "\(providerID.rawValue)-\(UUID().uuidString.prefix(8))"
+            let reference = ConnectorCredentials.oauthRefreshReference(providerID: providerID, accountID: accountID)
+            try ConnectorCredentials.save(refreshToken, reference: reference, kind: .oauthRefreshToken)
+            connectorStore.addAccount(ConnectedAccount(
+                id: accountID,
+                providerID: providerID,
+                displayName: providerID.displayName,
+                credentialReference: reference
+            ))
+            refreshUpcoming()
+        } catch OAuthError.cancelled {
+            // User dismissed the auth sheet; nothing to report.
+        } catch {
+            connectError = error.localizedDescription
+        }
+    }
+
+    func disconnect(providerID: ProviderID) {
+        for account in connectorStore.accounts where account.providerID == providerID {
+            if let reference = account.credentialReference {
+                try? KeychainCredentialStore().delete(reference: reference)
+            }
+            connectorStore.removeAccount(id: account.id)
+        }
+        refreshUpcoming()
     }
 
     func previewSound(named name: String) {
