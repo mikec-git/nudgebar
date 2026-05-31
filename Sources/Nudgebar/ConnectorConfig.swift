@@ -53,11 +53,27 @@ enum ConnectorConfig {
         return base.appendingPathComponent("connectors.json")
     }
 
+    /// Publisher-registered OAuth client IDs bundled with the app so end users can
+    /// connect by just logging in (no per-user app registration). Client IDs are
+    /// public and safe to ship; fill these once the Nudgebar OAuth apps are
+    /// registered (Google "iOS" client, Azure multi-tenant app, Calendly app).
+    enum Bundled {
+        static let googleClientID: String? = nil
+        static let microsoftClientID: String? = nil
+        static let calendlyClientID: String? = nil
+    }
+
     static func load() -> ConnectorClientConfig {
-        guard let data = try? Data(contentsOf: fileURL),
-              let config = try? JSONDecoder().decode(ConnectorClientConfig.self, from: data) else {
-            return ConnectorClientConfig()
+        var config = ConnectorClientConfig()
+        if let data = try? Data(contentsOf: fileURL),
+           let decoded = try? JSONDecoder().decode(ConnectorClientConfig.self, from: data) {
+            config = decoded
         }
+        // A user-supplied client ID overrides the bundled default; otherwise fall
+        // back to the bundled one so users can connect without their own app.
+        if config.googleClientID?.isEmpty != false { config.googleClientID = Bundled.googleClientID }
+        if config.microsoftClientID?.isEmpty != false { config.microsoftClientID = Bundled.microsoftClientID }
+        if config.calendlyClientID?.isEmpty != false { config.calendlyClientID = Bundled.calendlyClientID }
         return config
     }
 
