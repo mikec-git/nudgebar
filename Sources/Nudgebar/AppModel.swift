@@ -9,6 +9,7 @@ final class AppModel: ObservableObject {
     let presenter: AlertPresenter
     let ticker = CountdownTicker()
     let snoozeStore = SnoozeStore()
+    let connectorStore = ConnectorStore()
 
     /// Upcoming events from now through end of tomorrow, sorted ascending, capped at 25.
     @Published private(set) var upcomingEvents: [AlertCandidate] = []
@@ -56,6 +57,7 @@ final class AppModel: ObservableObject {
             calendarAccess: calendarAccess,
             preferences: preferences,
             snoozeStore: snoozeStore,
+            connectorStore: connectorStore,
             present: { [weak self] event in self?.fireAlert(event: event) },
             onTick: { [weak self] in self?.refreshUpcoming() }
         )
@@ -85,7 +87,8 @@ final class AppModel: ObservableObject {
             enabledCalendarIDs: enabledCalendarIDs
         )
         snoozeStore.clearExpired(now: now)
-        upcomingEvents = UpcomingEventsList.filter(events, now: now)
+        // Merge EventKit events with synced cloud-connector occurrences.
+        upcomingEvents = UpcomingEventsList.filter(events + connectorStore.occurrences, now: now)
         ticker.update(nextEventStart: nextUpcomingEvent?.startDate, now: now)
     }
 
@@ -154,6 +157,7 @@ final class EventMonitor {
     private let calendarAccess: CalendarAccess
     private let preferences: AlertPreferences
     private let snoozeStore: SnoozeStore
+    private let connectorStore: ConnectorStore
     private let present: @MainActor (AlertCandidate) -> Void
     private let onTick: @MainActor () -> Void
     private var task: Task<Void, Never>?
@@ -163,12 +167,14 @@ final class EventMonitor {
         calendarAccess: CalendarAccess,
         preferences: AlertPreferences,
         snoozeStore: SnoozeStore,
+        connectorStore: ConnectorStore,
         present: @escaping @MainActor (AlertCandidate) -> Void,
         onTick: @escaping @MainActor () -> Void = {}
     ) {
         self.calendarAccess = calendarAccess
         self.preferences = preferences
         self.snoozeStore = snoozeStore
+        self.connectorStore = connectorStore
         self.present = present
         self.onTick = onTick
     }
@@ -196,11 +202,6 @@ final class EventMonitor {
     private func tick() async {
         calendarAccess.refreshAuthorization()
 
-        guard calendarAccess.isAuthorized else {
-            onTick()
-            return
-        }
-
         let now = Date()
 
         // Re-admit events whose snooze has elapsed so they can fire again.
@@ -209,20 +210,25 @@ final class EventMonitor {
             snoozeStore.clear(eventID: id)
         }
 
+        // Sync cloud connectors over the popover window (independent of EventKit auth).
+        await connectorStore.sync(windowStart: now, windowEnd: UpcomingEventsList.endOfTomorrow(from: now))
+
         // Look ahead by the largest effective lead so per-calendar overrides are covered.
         let lookAhead = max(preferences.maxEffectiveLeadSeconds, 60)
         let endDate = now.addingTimeInterval(lookAhead)
-        let enabledCalendarIDs = preferences.enabledCalendarIDs(from: calendarAccess.calendars)
-        let upcomingEvents = calendarAccess.upcomingEvents(
-            from: now,
-            to: endDate,
-            enabledCalendarIDs: enabledCalendarIDs
-        )
+        let eventKitEvents = calendarAccess.isAuthorized
+            ? calendarAccess.upcomingEvents(
+                from: now,
+                to: endDate,
+                enabledCalendarIDs: preferences.enabledCalendarIDs(from: calendarAccess.calendars)
+            )
+            : []
+        let candidates = eventKitEvents + connectorStore.occurrences
 
         let activeSnoozes = Set(snoozeStore.snoozedUntil.filter { $0.value > now }.keys)
         let suppressed = Set(alertedEvents.keys).union(activeSnoozes)
 
-        let dueEvents = upcomingEvents
+        let dueEvents = candidates
             .filter { event in
                 guard event.isAlertable, !suppressed.contains(event.id) else {
                     return false

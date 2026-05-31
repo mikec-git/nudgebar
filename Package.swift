@@ -83,7 +83,7 @@ let package = Package(
         ),
         .testTarget(
             name: "NudgebarTests",
-            dependencies: ["Nudgebar", "NudgebarCore"]
+            dependencies: ["Nudgebar", "NudgebarCore", "NudgebarProviders", "NudgebarAuth"]
         )
     ],
     swiftLanguageModes: [.v5]
