@@ -17,6 +17,9 @@ final class AppModel: ObservableObject {
         upcomingEvents.first
     }
 
+    /// Set by the app delegate to open the settings window from the popover/menu.
+    var openSettingsAction: (() -> Void)?
+
     private let notifier = NotificationDelivery()
     private let previewPlayer = SoundPlayer()
     private var monitor: EventMonitor?
@@ -42,6 +45,12 @@ final class AppModel: ObservableObject {
         calendarAccess.refreshAuthorization()
         notifier.requestAuthorization()
         refreshUpcoming()
+
+        // Prompt for calendar access on first launch so events load without the
+        // user having to hunt for the in-popover Grant button.
+        if calendarAccess.isUndetermined {
+            requestCalendarAccess()
+        }
 
         let monitor = EventMonitor(
             calendarAccess: calendarAccess,

@@ -2,9 +2,9 @@ import AppKit
 import Combine
 import SwiftUI
 
-/// Owns the `NSStatusItem` (live title + monochrome proximity glyph) and the
-/// `NSPopover` hosting the upcoming-events view. Replaces `MenuBarExtra` so the
-/// title can be a live-bound string and the popover anchor is a real button.
+/// Owns the `NSStatusItem` (recognizable calendar glyph + live countdown title)
+/// and the `NSPopover` hosting the upcoming-events view. Left-click toggles the
+/// popover; right-click (or control-click) shows an Open / Settings / Quit menu.
 @MainActor
 final class StatusItemController: NSObject {
     private let model: AppModel
@@ -29,11 +29,12 @@ final class StatusItemController: NSObject {
 
         if let button = statusItem.button {
             button.target = self
-            button.action = #selector(togglePopover(_:))
+            button.action = #selector(statusItemClicked(_:))
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             button.imagePosition = .imageLeading
+            button.toolTip = "Nudgebar"
         }
 
-        // Refresh the title when the upcoming list changes or the countdown ticks.
         model.$upcomingEvents
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.refreshTitle() }
@@ -47,38 +48,73 @@ final class StatusItemController: NSObject {
         refreshTitle()
     }
 
-    private func refreshTitle() {
-        guard let button = statusItem.button else {
+    func togglePopoverFromShortcut() {
+        togglePopover()
+    }
+
+    @objc private func statusItemClicked(_ sender: Any?) {
+        let event = NSApp.currentEvent
+        if let event, event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
+            showMenu(for: event)
+        } else {
+            togglePopover()
+        }
+    }
+
+    private func showMenu(for event: NSEvent) {
+        guard let button = statusItem.button else { return }
+        let menu = NSMenu()
+        menu.addItem(menuItem("Open Nudgebar", #selector(menuOpen)))
+        menu.addItem(menuItem("Settings…", #selector(menuSettings), key: ","))
+        menu.addItem(.separator())
+        menu.addItem(menuItem("Quit Nudgebar", #selector(menuQuit), key: "q"))
+        NSMenu.popUpContextMenu(menu, with: event, for: button)
+    }
+
+    private func menuItem(_ title: String, _ action: Selector, key: String = "") -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
+        item.target = self
+        return item
+    }
+
+    @objc private func menuOpen() { togglePopover() }
+    @objc private func menuSettings() { model.openSettingsAction?() }
+    @objc private func menuQuit() { NSApp.terminate(nil) }
+
+    private func togglePopover() {
+        guard let button = statusItem.button else { return }
+        if popover.isShown {
+            popover.performClose(nil)
             return
         }
+        model.refreshUpcoming()
+        NSApp.activate(ignoringOtherApps: true)
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        popover.contentViewController?.view.window?.makeKey()
+    }
 
+    private func refreshTitle() {
+        guard let button = statusItem.button else { return }
         let title = StatusItemTitleFormatter.title(for: model.nextUpcomingEvent, now: .now)
-        // A leading space separates the glyph from the text when a title is present.
         button.title = title.text.isEmpty ? "" : " \(title.text)"
-
         if lastProximity != title.proximity {
-            button.image = StatusItemDotImage.image(for: title.proximity)
+            button.image = Self.glyph(for: title.proximity)
             lastProximity = title.proximity
         }
     }
 
-    /// Programmatic toggle for the Open-popover global shortcut.
-    func togglePopoverFromShortcut() {
-        togglePopover(nil)
-    }
-
-    @objc private func togglePopover(_ sender: Any?) {
-        guard let button = statusItem.button else {
-            return
+    private static func glyph(for proximity: StatusItemProximity) -> NSImage? {
+        let symbolName: String
+        switch proximity {
+        case .none:
+            symbolName = "calendar"
+        case .default:
+            symbolName = "calendar.badge.clock"
+        case .warning, .urgent:
+            symbolName = "calendar.badge.exclamationmark"
         }
-
-        if popover.isShown {
-            popover.performClose(sender)
-            return
-        }
-
-        model.refreshUpcoming()
-        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-        popover.contentViewController?.view.window?.makeKey()
+        let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Nudgebar")
+        image?.isTemplate = true
+        return image
     }
 }

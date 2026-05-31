@@ -211,9 +211,7 @@ private struct QuickControls: View {
             }
 
             HStack {
-                Button("Settings…") {
-                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                }
+                Button("Settings…") { model.openSettingsAction?() }
                 Spacer()
                 Button("Quit") {
                     NSApp.terminate(nil)

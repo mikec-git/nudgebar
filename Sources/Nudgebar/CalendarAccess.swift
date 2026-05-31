@@ -16,6 +16,10 @@ final class CalendarAccess: ObservableObject {
         Self.isAuthorized(authorizationStatus)
     }
 
+    var isUndetermined: Bool {
+        authorizationStatus == .notDetermined
+    }
+
     var statusLabel: String {
         if #available(macOS 14.0, *) {
             switch authorizationStatus {
