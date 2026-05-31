@@ -1,5 +1,5 @@
 import XCTest
-@testable import AlertBar
+@testable import Nudgebar
 
 final class AlertPolicyTests: XCTestCase {
     func testReturnsEventsInsideLeadTimeWindow() {

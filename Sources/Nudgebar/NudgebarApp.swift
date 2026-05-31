@@ -2,12 +2,12 @@ import AppKit
 import SwiftUI
 
 @main
-struct AlertBarApp: App {
+struct NudgebarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var model = AppModel()
 
     var body: some Scene {
-        MenuBarExtra("AlertBar", systemImage: "calendar.badge.clock") {
+        MenuBarExtra("Nudgebar", systemImage: "calendar.badge.clock") {
             MenuBarView()
                 .environmentObject(model)
         }

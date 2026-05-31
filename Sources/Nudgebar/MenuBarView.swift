@@ -23,7 +23,7 @@ private struct MenuBarContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("AlertBar")
+            Text("Nudgebar")
                 .font(.headline)
 
             Text("Calendar access: \(calendarAccess.statusLabel)")
@@ -67,7 +67,7 @@ private struct MenuBarContent: View {
                 NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
             }
 
-            Button("Quit AlertBar") {
+            Button("Quit Nudgebar") {
                 NSApp.terminate(nil)
             }
         }

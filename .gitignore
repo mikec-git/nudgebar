@@ -5,3 +5,6 @@ dist/
 *.xcuserstate
 *.xcodeproj/project.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
+.codex/
+.ccmux/
+.playwright-mcp/

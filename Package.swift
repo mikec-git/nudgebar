@@ -3,20 +3,20 @@
 import PackageDescription
 
 let package = Package(
-    name: "AlertBar",
+    name: "Nudgebar",
     platforms: [
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "AlertBar", targets: ["AlertBar"])
+        .executable(name: "Nudgebar", targets: ["Nudgebar"])
     ],
     targets: [
         .executableTarget(
-            name: "AlertBar"
+            name: "Nudgebar"
         ),
         .testTarget(
-            name: "AlertBarTests",
-            dependencies: ["AlertBar"]
+            name: "NudgebarTests",
+            dependencies: ["Nudgebar"]
         )
     ]
 )

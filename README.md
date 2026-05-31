@@ -1,6 +1,6 @@
-# AlertBar
+# Nudgebar
 
-AlertBar is a native macOS menu-bar app for high-visibility calendar reminders. It is designed around pluggable calendar providers so it can read local macOS calendars, direct cloud calendar APIs, CalDAV servers, and scheduling apps.
+Nudgebar is a native macOS menu-bar app for high-visibility calendar reminders. It is designed around pluggable calendar providers so it can read local macOS calendars, direct cloud calendar APIs, CalDAV servers, and scheduling apps.
 
 ## Current Scope
 
@@ -25,7 +25,7 @@ The current running connector is EventKit. The provider contract and integration
 ```sh
 swift build
 swift test
-swift run AlertBar
+swift run Nudgebar
 ```
 
 Running with `swift run` is useful during development, but calendar privacy prompts work best from a bundled app because macOS reads usage descriptions from `Info.plist`.
@@ -34,10 +34,10 @@ Running with `swift run` is useful during development, but calendar privacy prom
 
 ```sh
 Scripts/package-app.sh
-open dist/AlertBar.app
+open dist/Nudgebar.app
 ```
 
-The package script builds a release binary, creates `dist/AlertBar.app`, and copies `Resources/Info.plist` into the bundle.
+The package script builds a release binary, creates `dist/Nudgebar.app`, and copies `Resources/Info.plist` into the bundle.
 
 ## Product Notes
 

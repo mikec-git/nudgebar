@@ -7,7 +7,7 @@ test:
 	swift test
 
 run:
-	swift run AlertBar
+	swift run Nudgebar
 
 package:
 	Scripts/package-app.sh
