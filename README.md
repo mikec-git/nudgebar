@@ -57,14 +57,16 @@ Per-calendar rules, alert sounds, lead time, all-day alerts, auto-dismiss, globa
 
 ## Install
 
-Build from source (macOS 13+, Swift 6 / Xcode 16):
+```sh
+brew install --cask mikec-git/tap/nudgebar
+```
+
+First launch needs a right-click -> **Open** (the build isn't notarized yet); then grant Calendar access. Or build from source (macOS 13+, Swift 6 / Xcode 16):
 
 ```sh
 git clone https://github.com/mikec-git/nudgebar.git
 cd nudgebar && make package && open dist/Nudgebar.app
 ```
-
-Grant Calendar access on first launch. Homebrew is planned - `brew install --cask mikec-git/tap/nudgebar` ([cask scaffold](packaging/homebrew/nudgebar.rb)); the build isn't notarized yet, so first launch needs a right-click -> **Open**.
 
 ## Develop
 

@@ -1,23 +1,19 @@
 # Homebrew Cask for Nudgebar.
 #
-# This is a TEMPLATE. To publish:
-#   1. Create a tap repo named "homebrew-tap" under your account
-#      (e.g. github.com/mikec-git/homebrew-tap).
-#   2. Cut a GitHub Release of Nudgebar with a zipped app bundle named
-#      Nudgebar.zip attached to the tag (e.g. v0.1.0).
-#   3. Compute the archive checksum:  shasum -a 256 Nudgebar.zip
-#      and replace `:no_check` below with that value.
-#   4. Copy this file to Casks/nudgebar.rb in the tap repo and push.
-#
-# Users then install with:
+# The published, canonical copy lives in the tap and is what `brew` installs:
+#   https://github.com/mikec-git/homebrew-tap/blob/main/Casks/nudgebar.rb
 #   brew install --cask mikec-git/tap/nudgebar
 #
-# NOTE: the app is currently ad-hoc signed (not notarized), so until it is
-# signed with a Developer ID and notarized, users will get a Gatekeeper prompt
-# on first launch (right-click -> Open, or `xattr -dr com.apple.quarantine`).
+# This in-repo copy is a reference mirror. On a new release, rebuild the zip
+# (`make package` then `ditto -c -k --keepParent dist/Nudgebar.app Nudgebar.zip`),
+# attach it to the GitHub release, then update `version` and `sha256` here and in
+# the tap (`shasum -a 256 Nudgebar.zip`).
+#
+# NOTE: the app is ad-hoc signed (not notarized), so first launch shows a Gatekeeper
+# prompt (right-click -> Open, or `xattr -dr com.apple.quarantine`).
 cask "nudgebar" do
   version "0.1.0"
-  sha256 :no_check # replace with `shasum -a 256 Nudgebar.zip` of the release asset
+  sha256 "a3f55d106d1089f5f8c042adf903bdc2b175e95040c6d6b137d5ec2df99d229c"
 
   url "https://github.com/mikec-git/nudgebar/releases/download/v#{version}/Nudgebar.zip"
   name "Nudgebar"
