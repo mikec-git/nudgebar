@@ -11,146 +11,70 @@
 </p>
 
 <p align="center">
-  <b>Nudgebar</b> is a native macOS menu-bar app that gives you high-visibility,
-  hard-to-miss reminders before your meetings and events.
+  High-visibility, hard-to-miss menu-bar reminders for macOS - so you actually show up.
 </p>
 
 ---
 
-## Why
+### Your day at a glance
 
-Calendar notifications are easy to miss - a banner slides in while you're heads-down
-and slides away. Nudgebar lives in the menu bar with a live countdown to your next
-event, and when something is about to start it can take over the screen with a clear,
-one-glance alert (with a one-tap Join for video calls) so you actually show up.
+<table>
+<tr>
+<td width="58%" valign="top">
 
-## Screenshots
+The menu-bar popover leads with your next event or two (one-tap **Join** for video calls), then a compact **Today / Tomorrow** timeline. Per-calendar colors, `in 5 min` pills, and clickable links. The status item counts down to what's next.
 
-<p align="center">
-  <img src="docs/screenshots/alert.png" width="660" alt="Full-screen alert"><br>
-  <em>Full-screen alert - title, time, countdown ring, snooze, and one-tap Join.</em>
-</p>
+</td>
+<td width="42%" valign="top"><img src="docs/screenshots/popover.png" width="320" alt="Menu-bar popover"></td>
+</tr>
+</table>
 
-<p align="center">
-  <img src="docs/screenshots/popover.png" width="300" alt="Menu-bar popover"><br>
-  <em>Menu-bar popover - upcoming events grouped by Today / Tomorrow, with per-calendar colors.</em>
-</p>
+### Impossible to miss
 
-<p align="center">
-  <img src="docs/screenshots/settings.png" width="660" alt="Settings window"><br>
-  <em>Settings - per-calendar rules, connectors, alert sounds, shortcuts, and more.</em>
-</p>
+<table>
+<tr>
+<td width="52%" valign="top"><img src="docs/screenshots/alert.png" width="440" alt="Full-screen alert"></td>
+<td width="48%" valign="top">
 
-## Features
+When an event is due, a full-screen card takes over: countdown ring, **Snooze** (capped to the time left), **Dismiss**, **Join**, and a looping sound. Press **Esc** to clear, or **Snooze / Dismiss All** when they stack.
 
-**Menu bar**
+</td>
+</tr>
+</table>
 
-- Status item with a live countdown to your next event; left-click for the popover,
-  right-click for Open / Settings / Quit.
+### Tuned your way
 
-**Popover**
+<table>
+<tr>
+<td width="58%" valign="top">
 
-- A hero pair of the next one or two actionable events with one-tap Join for video links.
-- The rest of the day on a compressed **Today / Tomorrow** timeline.
-- Per-calendar color dots and source names, `in 5 min` / `in 1h 20m` lead pills, and
-  clickable locations and meeting links.
-- Refresh button plus quick Full-screen-alerts and Lead-time controls.
+Per-calendar rules, alert sounds, lead time, all-day alerts, auto-dismiss, global shortcuts, and launch at login. Reads **EventKit** (Google / Outlook / iCloud via macOS) plus **Calendly** and **Cal.com** connectors - and re-arms alerts when events move.
 
-**Full-screen alerts**
-
-- A centered, high-visibility card over a warm translucent backdrop.
-- Title, time, duration, calendar, organizer, and location; conference chip and Join.
-- Snooze presets (limited to the time actually remaining) and Dismiss; Snooze All /
-  Dismiss All when several stack up.
-- A smooth auto-dismiss countdown ring, **Escape** to dismiss, and a looping alert
-  sound until you snooze or dismiss.
-
-**Calendars & sources**
-
-- Reads local macOS calendars via EventKit - which already covers **Google, Outlook /
-  Microsoft 365, and iCloud** once they're added to macOS (Internet Accounts), with no
-  client IDs or extra logins.
-- Enable/disable each calendar individually, with an optional per-calendar lead-time
-  override.
-- Watches for calendar changes and **re-arms alerts when events are rescheduled**;
-  configurable poll interval and a manual refresh.
-- Direct connectors (beta): **Calendly** (Personal Access Token) and **Cal.com**
-  (API v2) for scheduled bookings, with an in-app setup guide and per-account sync status.
-
-**Alerts & behavior**
-
-- Configurable lead time (global and per calendar).
-- Full-screen alert or a notification fallback; best-effort Focus respect.
-- Opt-in all-day-event alerts with a chosen time, day offset, and delivery style.
-- Auto-dismiss from 5 seconds up to Never.
-- A catalog of bundled alert sounds (real ambient recordings + notification tones) with
-  preview, and a one-click test alert.
-
-**System**
-
-- Launch at login.
-- Global keyboard shortcuts for Snooze All / Dismiss All / Open popover (recordable,
-  with conflict detection).
-- Keychain-backed credentials; non-secret preferences stored locally.
+</td>
+<td width="42%" valign="top"><img src="docs/screenshots/settings.png" width="420" alt="Settings window"></td>
+</tr>
+</table>
 
 ## Install
 
-### Build from source (works today)
-
-Requires macOS 13+ and a Swift 6 toolchain (Xcode 16 / Command Line Tools).
+Build from source (macOS 13+, Swift 6 / Xcode 16):
 
 ```sh
 git clone https://github.com/mikec-git/nudgebar.git
-cd nudgebar
-make package
-open dist/Nudgebar.app
+cd nudgebar && make package && open dist/Nudgebar.app
 ```
 
-On first launch, grant Calendar access when prompted (or **Settings → Calendars →
-Grant Access**). The permission prompt works best from the packaged app, since macOS
-reads the usage description from `Info.plist`.
+Grant Calendar access on first launch. Homebrew is planned - `brew install --cask mikec-git/tap/nudgebar` ([cask scaffold](packaging/homebrew/nudgebar.rb)); the build isn't notarized yet, so first launch needs a right-click -> **Open**.
 
-### Homebrew (planned)
-
-Once a tap and a signed release are published, install will be:
+## Develop
 
 ```sh
-brew install --cask mikec-git/tap/nudgebar
+make swift-test      # 127 tests
+swift run Nudgebar   # run from source
 ```
 
-A ready-to-publish cask is scaffolded in
-[`packaging/homebrew/nudgebar.rb`](packaging/homebrew/nudgebar.rb) (see the header for
-the publishing steps). The build is currently ad-hoc signed and not notarized, so until
-it is, first launch needs a right-click → **Open** to get past Gatekeeper.
-
-## Development
-
-```sh
-make swift-test      # run the test suite (127 tests)
-swift build          # debug build
-swift run Nudgebar   # run from source (calendar prompts work best from the bundle)
-make package         # build dist/Nudgebar.app
-```
-
-CI runs `swift build` and `swift test` on macOS for every push and PR
-(`.github/workflows/ci.yml`). See [`docs/build-and-test.md`](docs/build-and-test.md)
-for local toolchain notes.
-
-## Project layout
-
-| Path                           | What                                                                    |
-| ------------------------------ | ----------------------------------------------------------------------- |
-| `Sources/Nudgebar`             | The macOS app: menu bar, popover, full-screen alerts, settings, sounds  |
-| `Sources/NudgebarCore`         | Provider-agnostic models and sync contracts                             |
-| `Sources/NudgebarProviders`    | Calendar / scheduling provider implementations                          |
-| `Sources/NudgebarAuth`         | Keychain-backed credential boundary                                     |
-| `Sources/NudgebarMacOSSupport` | EventKit + notification integration                                     |
-| `design/`                      | Canonical HTML brand book and UI mockups                                |
-| `docs/`                        | Architecture notes, provider matrix, build/test docs                    |
-| `Resources/Sounds/`            | Bundled alert sounds ([sources & licenses](Resources/Sounds/README.md)) |
+CI runs `swift build` + `swift test` on macOS. Sounds are CC0 / public-domain + Mixkit-Free ([licenses](Resources/Sounds/README.md)).
 
 ## License
 
-[MIT](LICENSE). Bundled alert sounds are third-party works under their own licenses
-(public domain / CC0 and the Mixkit Free License) - see
-[`Resources/Sounds/README.md`](Resources/Sounds/README.md).
+[MIT](LICENSE).
