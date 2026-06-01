@@ -30,6 +30,12 @@ final class StatusItemTitleFormatterTests: XCTestCase {
         XCTAssertEqual(result.proximity, .warning)
     }
 
+    func testHoursAndMinutesCountdown() {
+        XCTAssertEqual(StatusItemTitleFormatter.countdownText(secondsUntilStart: 117 * 60), "1h 57m")
+        XCTAssertEqual(StatusItemTitleFormatter.countdownText(secondsUntilStart: 60 * 60), "1h 0m")
+        XCTAssertEqual(StatusItemTitleFormatter.countdownText(secondsUntilStart: 59 * 60), "59m")
+    }
+
     func testImminentCountdownAndUrgentProximity() {
         let result = StatusItemTitleFormatter.title(for: event("Standup", startOffset: 20), now: now)
         XCTAssertEqual(result.text, "Standup · starts in <30s")

@@ -88,7 +88,7 @@ final class StatusItemController: NSObject {
             popover.performClose(nil)
             return
         }
-        model.refreshUpcoming()
+        model.forceRefresh()
         NSApp.activate(ignoringOtherApps: true)
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         popover.contentViewController?.view.window?.makeKey()

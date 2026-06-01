@@ -13,6 +13,27 @@ final class CalendarAccess: ObservableObject {
     @Published private(set) var accountTitles: [String] = []
     @Published private(set) var lastError: String?
 
+    /// Fires when EventKit reports an external change (account added, remote sync
+    /// landed), so observers can re-query the events the cached store now exposes.
+    let didChangeExternally = PassthroughSubject<Void, Never>()
+    private var storeChangeObserver: NSObjectProtocol?
+
+    init() {
+        storeChangeObserver = NotificationCenter.default.addObserver(
+            forName: .EKEventStoreChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.handleStoreChanged() }
+        }
+    }
+
+    deinit {
+        if let storeChangeObserver {
+            NotificationCenter.default.removeObserver(storeChangeObserver)
+        }
+    }
+
     var isAuthorized: Bool {
         Self.isAuthorized(authorizationStatus)
     }
@@ -56,6 +77,19 @@ final class CalendarAccess: ObservableObject {
         if isAuthorized {
             loadCalendars()
         }
+    }
+
+    /// Ask EventKit to pull fresh data from remote accounts (Google, iCloud, Exchange).
+    /// Results land asynchronously via the EKEventStoreChanged notification.
+    func refreshRemoteSources() {
+        guard isAuthorized else { return }
+        store.refreshSourcesIfNecessary()
+    }
+
+    private func handleStoreChanged() {
+        guard isAuthorized else { return }
+        loadCalendars()
+        didChangeExternally.send()
     }
 
     func requestAccess() async {

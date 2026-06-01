@@ -33,6 +33,7 @@ final class AppModel: ObservableObject {
     private var monitor: EventMonitor?
     private var alertWindow: AlertWindowController?
     private var hasStarted = false
+    private var cancellables = Set<AnyCancellable>()
 
     // macOS exposes no public Focus/DND API; the "respect Focus" toggle is the
     // reliable control and this stays false (best-effort) until that changes.
@@ -54,6 +55,13 @@ final class AppModel: ObservableObject {
         calendarAccess.refreshAuthorization()
         notifier.requestAuthorization()
         refreshUpcoming()
+
+        // Re-query whenever EventKit reports a remote sync so newly synced events
+        // appear without waiting for relaunch.
+        calendarAccess.didChangeExternally
+            .receive(on: RunLoop.main)
+            .sink { [weak self] in self?.refreshUpcoming() }
+            .store(in: &cancellables)
 
         // Prompt for calendar access on first launch so events load without the
         // user having to hunt for the in-popover Grant button.
@@ -90,6 +98,13 @@ final class AppModel: ObservableObject {
 
     func refreshCalendars() {
         calendarAccess.refreshAuthorization()
+        refreshUpcoming()
+    }
+
+    /// User-triggered refresh: nudge remote accounts to sync and re-query now.
+    func forceRefresh() {
+        calendarAccess.refreshAuthorization()
+        calendarAccess.refreshRemoteSources()
         refreshUpcoming()
     }
 
@@ -362,6 +377,7 @@ final class EventMonitor {
 
     private func tick() async {
         calendarAccess.refreshAuthorization()
+        calendarAccess.refreshRemoteSources()
 
         let now = Date()
 
@@ -383,32 +399,38 @@ final class EventMonitor {
             : []
         let candidates = eventKitEvents + connectorStore.occurrences
 
-        let activeSnoozes = Set(snoozeStore.snoozedUntil.filter { $0.value > now }.keys)
-        let suppressed = Set(alertedEvents.keys).union(activeSnoozes)
+        // Re-arm events rescheduled since we last alerted them (moved events should
+        // alert again at their new time rather than stay suppressed by ID).
+        for id in AlertDueEvaluator.rescheduledIDs(candidates: candidates, alertedEvents: alertedEvents) {
+            alertedEvents.removeValue(forKey: id)
+        }
 
-        let timedDue = candidates
-            .filter { event in
-                guard event.isAlertable, !suppressed.contains(event.id) else { return false }
-                let lead = TimeInterval(max(0, preferences.effectiveSettings(for: event).leadMinutes) * 60)
-                return event.startDate >= now && event.startDate <= now.addingTimeInterval(lead)
-            }
-            .sorted { $0.startDate < $1.startDate }
+        let suppressed = AlertDueEvaluator.suppressedIDs(
+            alertedEvents: alertedEvents,
+            snoozedUntil: snoozeStore.snoozedUntil,
+            now: now
+        )
+
+        let timedDue = AlertDueEvaluator.timedDue(
+            candidates: candidates,
+            now: now,
+            suppressed: suppressed,
+            leadMinutes: { preferences.effectiveSettings(for: $0).leadMinutes }
+        )
 
         // All-day events alert at a fixed clock time on a chosen day, not a lead time.
         var allDayDue: [AlertCandidate] = []
         if preferences.allDayAlertsEnabled, calendarAccess.isAuthorized {
             let windowEnd = now.addingTimeInterval(TimeInterval(preferences.allDayAlertDayOffset + 2) * 86_400)
-            allDayDue = calendarAccess.upcomingEvents(from: now, to: windowEnd, enabledCalendarIDs: enabledCalendarIDs)
-                .filter { event in
-                    guard event.isAllDay, !suppressed.contains(event.id), event.endDate > now else { return false }
-                    let fire = AllDayAlertSchedule.fireDate(
-                        for: event,
-                        hour: preferences.allDayAlertHour,
-                        minute: preferences.allDayAlertMinute,
-                        dayOffset: preferences.allDayAlertDayOffset
-                    )
-                    return now >= fire
-                }
+            let allDayCandidates = calendarAccess.upcomingEvents(from: now, to: windowEnd, enabledCalendarIDs: enabledCalendarIDs)
+            allDayDue = AlertDueEvaluator.allDayDue(
+                candidates: allDayCandidates,
+                now: now,
+                suppressed: suppressed,
+                hour: preferences.allDayAlertHour,
+                minute: preferences.allDayAlertMinute,
+                dayOffset: preferences.allDayAlertDayOffset
+            )
         }
 
         for event in timedDue + allDayDue {

@@ -1,4 +1,5 @@
 import NudgebarCore
+import AppKit
 import SwiftUI
 
 /// Hybrid upcoming-events popover in the Nudgebar brand: a hero pair of the next
@@ -26,6 +27,13 @@ struct UpcomingPopoverView: View {
         .environment(\.colorScheme, .dark)
     }
 
+    /// Definite height for the scrollable list so it claims real estate instead of
+    /// collapsing. Scales with the display and leaves room for header + footer.
+    private var listHeight: CGFloat {
+        let usable = NSScreen.main?.visibleFrame.height ?? 900
+        return min(560, max(340, usable - 320))
+    }
+
     private var header: some View {
         HStack(spacing: 9) {
             RingLogo(state: .active).frame(width: 18, height: 18)
@@ -34,6 +42,13 @@ struct UpcomingPopoverView: View {
             Text("Today · Tomorrow")
                 .font(Brand.font(11, .medium))
                 .foregroundStyle(Brand.stone)
+            Button { model.forceRefresh() } label: {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Brand.stone)
+            .help("Refresh now")
         }
         .padding(.horizontal, 16)
         .padding(.top, 14)
@@ -71,7 +86,7 @@ struct UpcomingPopoverView: View {
             }
             .padding(16)
         }
-        .frame(maxHeight: 380)
+        .frame(height: listHeight)
     }
 
     private var emptyState: some View {
@@ -106,10 +121,14 @@ private struct HeroCard: View {
     private var conference: ConferenceLink? {
         ConferenceLinkResolver.resolve(meetingURL: event.meetingURL, location: event.location)
     }
+    private var locationText: String? {
+        guard let location = event.location, !location.isEmpty, conference == nil else { return nil }
+        return location
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
-            RoundedRectangle(cornerRadius: 2).fill(calendarColor).frame(width: 3).padding(.vertical, 2)
+            Rectangle().fill(calendarColor).frame(width: 4)
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
@@ -123,32 +142,39 @@ private struct HeroCard: View {
                         .font(Brand.font(12, .medium)).foregroundStyle(Brand.sand)
                 }
 
-                Text(event.title).font(Brand.font(15, .semibold)).foregroundStyle(Brand.blush).lineLimit(2)
-
-                HStack(spacing: 8) {
+                HStack(alignment: .top, spacing: 8) {
+                    Text(event.title).font(Brand.font(15, .semibold)).foregroundStyle(Brand.blush).lineLimit(2)
+                    Spacer(minLength: 8)
                     if !event.isAllDay {
                         LeadPillSmall(seconds: event.startDate.timeIntervalSince(now))
                     }
-                    if let location = event.location, !location.isEmpty, conference == nil {
-                        Text(location).font(Brand.font(11)).foregroundStyle(Brand.stone).lineLimit(1)
-                    }
-                    Spacer()
-                    if let conference {
-                        Button { onJoin(conference.url) } label: {
-                            Text("Join").font(Brand.font(12, .semibold))
-                                .padding(.horizontal, 12).padding(.vertical, 4)
-                                .background(Capsule().fill(Brand.blush))
-                                .foregroundStyle(Brand.inkDeep)
+                }
+
+                if conference != nil || locationText != nil {
+                    HStack(spacing: 8) {
+                        if let locationText {
+                            Text(locationText).font(Brand.font(11)).foregroundStyle(Brand.stone).lineLimit(1)
                         }
-                        .buttonStyle(.plain)
+                        Spacer()
+                        if let conference {
+                            Button { onJoin(conference.url) } label: {
+                                Text("Join").font(Brand.font(12, .semibold))
+                                    .padding(.horizontal, 12).padding(.vertical, 4)
+                                    .background(Capsule().fill(Brand.blush))
+                                    .foregroundStyle(Brand.inkDeep)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
             }
             .padding(.leading, 11)
             .padding(.vertical, 11)
             .padding(.trailing, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(RoundedRectangle(cornerRadius: 12).fill(Brand.ember))
+        .background(Brand.ember)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
@@ -217,31 +243,29 @@ private struct QuickControls: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Toggle("Full-screen alerts", isOn: $preferences.fullScreenAlerts)
-                .font(Brand.font(13))
-                .tint(Brand.blush)
-                .foregroundStyle(Brand.sand)
+            HStack {
+                Text("Full-screen alerts").font(Brand.font(13)).foregroundStyle(Brand.sand)
+                Spacer()
+                Toggle("", isOn: $preferences.fullScreenAlerts)
+                    .labelsHidden()
+                    .tint(Brand.blush)
+            }
 
             HStack {
                 Text("Lead time").font(Brand.font(13)).foregroundStyle(Brand.sand)
                 Spacer()
-                HStack(spacing: 14) {
-                    Button { adjustLead(by: -1) } label: {
-                        Image(systemName: "chevron.down").font(.system(size: 11, weight: .semibold))
+                Picker("", selection: Binding(
+                    get: { preferences.leadMinutes },
+                    set: { preferences.leadMinutes = $0; model.refreshUpcoming() }
+                )) {
+                    ForEach(AlertPreferences.allowedLeadMinutes, id: \.self) { minutes in
+                        Text(minutes == 0 ? "At start" : "\(minutes) min").tag(minutes)
                     }
-                    .buttonStyle(.plain).foregroundStyle(Brand.blush)
-                    .disabled(preferences.leadMinutes == AlertPreferences.allowedLeadMinutes.first)
-
-                    Text(preferences.leadMinutes == 0 ? "At start" : "\(preferences.leadMinutes) min")
-                        .font(Brand.font(12, .medium)).foregroundStyle(Brand.blush)
-                        .frame(minWidth: 56)
-
-                    Button { adjustLead(by: 1) } label: {
-                        Image(systemName: "chevron.up").font(.system(size: 11, weight: .semibold))
-                    }
-                    .buttonStyle(.plain).foregroundStyle(Brand.blush)
-                    .disabled(preferences.leadMinutes == AlertPreferences.allowedLeadMinutes.last)
                 }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .tint(Brand.blush)
+                .fixedSize()
             }
 
             HStack {

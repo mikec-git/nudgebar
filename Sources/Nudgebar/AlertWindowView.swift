@@ -13,19 +13,7 @@ struct AlertOverlayView: View {
         ZStack {
             WarmBackdrop().ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                HStack {
-                    HStack(spacing: 9) {
-                        RingLogo(state: .active).frame(width: 22, height: 22)
-                        Wordmark(size: 17)
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, 40)
-                .padding(.top, 34)
-
-                Spacer(minLength: 12)
-
+            GeometryReader { geo in
                 ScrollView {
                     VStack(spacing: 18) {
                         ForEach(model.cards) { card in
@@ -38,20 +26,26 @@ struct AlertOverlayView: View {
                             .frame(maxWidth: 620)
                         }
                     }
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: geo.size.height, alignment: .center)
                     .padding(.horizontal, 40)
-                    .padding(.vertical, 10)
                 }
-
-                Spacer(minLength: 12)
-
-                if !model.cards.isEmpty {
-                    HStack(spacing: 12) {
-                        GhostButton(title: "Snooze All") { model.snoozeAll(minutes: defaultSnoozeMinutes) }
-                        GhostButton(title: "Dismiss All") { model.dismissAll() }
-                    }
-                    .padding(.bottom, 36)
+            }
+        }
+        .overlay(alignment: .topLeading) {
+            HStack(spacing: 9) {
+                RingLogo(state: .active).frame(width: 22, height: 22)
+                Wordmark(size: 17)
+            }
+            .padding(.horizontal, 40)
+            .padding(.top, 34)
+        }
+        .overlay(alignment: .bottom) {
+            if !model.cards.isEmpty {
+                HStack(spacing: 12) {
+                    GhostButton(title: "Snooze All") { model.snoozeAll(minutes: defaultSnoozeMinutes) }
+                    GhostButton(title: "Dismiss All") { model.dismissAll() }
                 }
+                .padding(.bottom, 36)
             }
         }
         .environment(\.colorScheme, .dark)
@@ -69,48 +63,45 @@ private struct AlertCardView: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
-            Rectangle()
-                .fill(calendarColor)
-                .frame(width: 5)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(card.event.title)
+                        .font(Brand.font(30, .semibold))
+                        .foregroundStyle(Brand.blush)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.6)
 
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(card.event.title)
-                            .font(Brand.font(30, .semibold))
-                            .foregroundStyle(Brand.blush)
-                            .lineLimit(3)
-                            .minimumScaleFactor(0.6)
+                    metaRow
 
-                        metaRow
-
-                        HStack(spacing: 8) {
-                            LeadPill(seconds: card.event.startDate.timeIntervalSince(Date()))
-                            if let conference = card.conference {
-                                ConferenceChip(label: conference.type.label)
-                            }
+                    HStack(spacing: 8) {
+                        LeadPill(seconds: card.event.startDate.timeIntervalSince(Date()))
+                        if let conference = card.conference {
+                            ConferenceChip(label: conference.type.label)
                         }
                     }
-                    Spacer(minLength: 16)
-                    if let remaining = card.remainingSeconds, let total = card.autoDismissTotal {
-                        CountdownRing(remaining: remaining, total: total)
-                    }
                 }
-
-                HStack(spacing: 10) {
-                    if let conference = card.conference {
-                        JoinButton { onJoin(conference.url) }
-                    }
-                    SnoozeMenu(onSnooze: onSnooze)
-                    GhostButton(title: "Dismiss", action: onDismiss)
-                    Spacer()
+                Spacer(minLength: 16)
+                if let remaining = card.remainingSeconds, let total = card.autoDismissTotal {
+                    CountdownRing(remaining: remaining, total: total)
                 }
             }
-            .padding(24)
-            .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 10) {
+                if let conference = card.conference {
+                    JoinButton { onJoin(conference.url) }
+                }
+                SnoozeMenu(onSnooze: onSnooze)
+                GhostButton(title: "Dismiss", action: onDismiss)
+                Spacer()
+            }
         }
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Brand.ember)
+        .overlay(alignment: .leading) {
+            Rectangle().fill(calendarColor).frame(width: 5)
+        }
         .clipShape(RoundedRectangle(cornerRadius: 18))
         .overlay(
             RoundedRectangle(cornerRadius: 18)
@@ -275,10 +266,13 @@ private struct GhostButton: View {
 
 /// Warm copper-toned translucent backdrop with a faint blush edge halo.
 private struct WarmBackdrop: View {
+    /// Dark scrim over the desktop blur. Lower = more transparent.
+    private let scrimOpacity: Double = 0.42
+
     var body: some View {
         ZStack {
             VisualEffectBackdrop()
-            Brand.inkDeep.opacity(0.66)
+            Brand.inkDeep.opacity(scrimOpacity)
             RadialGradient(
                 colors: [Brand.blush.opacity(0.10), .clear],
                 center: .center,

@@ -64,7 +64,10 @@ enum StatusItemTitleFormatter {
             return "starts in <30s"
         }
         let minutes = Int(ceil(secondsUntilStart / 60.0))
-        return "\(minutes)m"
+        if minutes < 60 {
+            return "\(minutes)m"
+        }
+        return "\(minutes / 60)h \(minutes % 60)m"
     }
 
     /// Middle-truncate a string to at most `limit` characters, using a single ellipsis.
