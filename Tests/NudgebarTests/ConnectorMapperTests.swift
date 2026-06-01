@@ -2,40 +2,6 @@ import XCTest
 import NudgebarCore
 @testable import Nudgebar
 
-final class MicrosoftGraphMapperTests: XCTestCase {
-    private let account = ConnectedAccount(id: "acc1", providerID: .microsoftGraph, displayName: "Test")
-    private var source: CalendarSource {
-        CalendarSource(id: "c1", title: "Calendar", sourceTitle: "Microsoft 365", providerID: .microsoftGraph, accountID: "acc1", externalID: "c1")
-    }
-
-    func testParsesCalendars() {
-        let json = #"{"value":[{"id":"c1","name":"Calendar"},{"id":"c2","name":"Team"}]}"#.data(using: .utf8)!
-        let sources = MicrosoftGraphMapper.sources(from: json, account: account)
-        XCTAssertEqual(sources.map(\.id), ["c1", "c2"])
-    }
-
-    func testParsesEvents() throws {
-        let json = """
-        {"value":[{"id":"e1","subject":"Sync","isCancelled":false,"location":{"displayName":"Room 5"},
-        "organizer":{"emailAddress":{"name":"Sam"}},"onlineMeeting":{"joinUrl":"https://teams.microsoft.com/l/x"},
-        "start":{"dateTime":"2026-01-15T10:00:00.0000000","timeZone":"UTC"},
-        "end":{"dateTime":"2026-01-15T10:30:00.0000000","timeZone":"UTC"}}]}
-        """.data(using: .utf8)!
-        let occurrences = try MicrosoftGraphMapper.occurrences(from: json, account: account, source: source)
-        XCTAssertEqual(occurrences.count, 1)
-        XCTAssertEqual(occurrences[0].title, "Sync")
-        XCTAssertEqual(occurrences[0].location, "Room 5")
-        XCTAssertEqual(occurrences[0].organizer, "Sam")
-        XCTAssertEqual(occurrences[0].meetingURL?.host, "teams.microsoft.com")
-        XCTAssertEqual(occurrences[0].providerID, .microsoftGraph)
-    }
-
-    func testGraphDateParsing() {
-        XCTAssertNotNil(MicrosoftGraphMapper.parseDate("2026-01-15T10:00:00.0000000"))
-        XCTAssertNotNil(MicrosoftGraphMapper.parseDate("2026-01-15T10:00:00"))
-    }
-}
-
 final class CalendlyMapperTests: XCTestCase {
     private let account = ConnectedAccount(id: "acc1", providerID: .calendly, displayName: "Test")
     private var source: CalendarSource {

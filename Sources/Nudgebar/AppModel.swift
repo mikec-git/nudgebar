@@ -147,8 +147,6 @@ final class AppModel: ObservableObject {
         var config = ConnectorConfig.load()
         let secret = (clientSecret?.isEmpty == false) ? clientSecret : nil
         switch providerID {
-        case .googleCalendar: config.googleClientID = clientID; config.googleClientSecret = secret
-        case .microsoftGraph: config.microsoftClientID = clientID
         case .calendly: config.calendlyClientID = clientID; config.calendlyClientSecret = secret
         default: break
         }
@@ -168,7 +166,7 @@ final class AppModel: ObservableObject {
             return
         }
         do {
-            let extra = providerID == .googleCalendar ? ["access_type": "offline", "prompt": "consent"] : [:]
+            let extra: [String: String] = [:]
             let tokens = try await oauthFlow.authorize(
                 metadata: metadata,
                 callbackScheme: callbackScheme,

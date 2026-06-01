@@ -67,8 +67,8 @@ enum CalComMapper {
     }
 
     private static func occurrence(from booking: Booking, account: ConnectedAccount, source: CalendarSource) -> AlertOccurrence? {
-        guard let startRaw = booking.startTime, let start = GoogleCalendarMapper.parseDate(startRaw) else { return nil }
-        let end = booking.endTime.flatMap(GoogleCalendarMapper.parseDate) ?? start.addingTimeInterval(1800)
+        guard let startRaw = booking.startTime, let start = CalendarDateParsing.parse(startRaw) else { return nil }
+        let end = booking.endTime.flatMap(CalendarDateParsing.parse) ?? start.addingTimeInterval(1800)
         let externalID = booking.uid ?? startRaw
         let status: AlertOccurrenceStatus = (booking.status == "cancelled" || booking.status == "canceled") ? .cancelled : .confirmed
         let meetingURL = booking.location.flatMap { URL(string: $0) }
@@ -159,7 +159,7 @@ enum AcuityMapper {
     }
 
     private static func occurrence(from appointment: Appointment, account: ConnectedAccount, source: CalendarSource) -> AlertOccurrence? {
-        guard let startRaw = appointment.datetime, let start = GoogleCalendarMapper.parseDate(startRaw) else { return nil }
+        guard let startRaw = appointment.datetime, let start = CalendarDateParsing.parse(startRaw) else { return nil }
         let durationMinutes = Double(appointment.duration ?? "") ?? 30
         let end = start.addingTimeInterval(durationMinutes * 60)
         let externalID = appointment.id.map(String.init) ?? startRaw

@@ -310,9 +310,9 @@ private struct ConnectorsSection: View {
 
     // EventKit covers Google/Microsoft/iCloud via macOS, so the advanced direct
     // connectors are the cloud ones plus the scheduling providers.
-    private let providers: [ProviderID] = [.googleCalendar, .microsoftGraph, .calDAV, .calendly, .calCom, .acuity]
-    private let implemented: Set<ProviderID> = [.googleCalendar, .microsoftGraph, .calendly, .calCom, .acuity, .calDAV]
-    private let oauthProviders: Set<ProviderID> = [.googleCalendar, .microsoftGraph, .calendly]
+    private let providers: [ProviderID] = [.calDAV, .calendly, .calCom, .acuity]
+    private let implemented: Set<ProviderID> = [.calendly, .calCom, .acuity, .calDAV]
+    private let oauthProviders: Set<ProviderID> = [.calendly]
     @State private var credentialProvider: ProviderID?
     @State private var oauthSetupProvider: ProviderID?
 
@@ -704,21 +704,15 @@ private struct OAuthSetupSheet: View {
 
     private var instructions: String {
         switch provider {
-        case .googleCalendar:
-            return "In Google Cloud Console: enable the Google Calendar API, then create an OAuth 2.0 Client ID of type \"iOS\" (any bundle ID, e.g. com.local.Nudgebar). Paste the client ID below — Nudgebar derives the redirect automatically. iOS clients have no secret."
-        case .microsoftGraph:
-            return "In Azure Portal → App registrations: create an app, add a \"Mobile and desktop applications\" platform with the redirect URI below, and grant Microsoft Graph delegated Calendars.Read. Paste the Application (client) ID."
         case .calendly:
             return "In the Calendly developer portal: create an OAuth app with the redirect URI below, then paste its client ID and secret."
         default:
-            return ""
+            return "Create an OAuth app with the redirect URI below, then paste its client ID."
         }
     }
 
     private var consoleURL: URL? {
         switch provider {
-        case .googleCalendar: return URL(string: "https://console.cloud.google.com/apis/credentials")
-        case .microsoftGraph: return URL(string: "https://portal.azure.com/")
         case .calendly: return URL(string: "https://developer.calendly.com/")
         default: return nil
         }

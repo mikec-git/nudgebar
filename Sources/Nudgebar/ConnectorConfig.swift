@@ -1,13 +1,10 @@
 import NudgebarCore
 import Foundation
 
-/// OAuth client credentials supplied by the user, loaded from a file OUTSIDE the
-/// repo so secrets are never committed:
+/// OAuth client credentials for the direct connectors that need them (Calendly),
+/// loaded from a file OUTSIDE the repo so secrets are never committed:
 /// ~/Library/Application Support/Nudgebar/connectors.json
 struct ConnectorClientConfig: Codable, Equatable {
-    var googleClientID: String?
-    var googleClientSecret: String?
-    var microsoftClientID: String?
     var calendlyClientID: String?
     var calendlyClientSecret: String?
     var calComAPIKey: String?
@@ -16,19 +13,16 @@ struct ConnectorClientConfig: Codable, Equatable {
 
     func oauthClientID(for providerID: ProviderID) -> String? {
         switch providerID {
-        case .googleCalendar: return googleClientID
-        case .microsoftGraph: return microsoftClientID
         case .calendly: return calendlyClientID
-        case .eventKit, .calDAV, .calCom, .acuity: return nil
+        case .eventKit, .googleCalendar, .microsoftGraph, .calDAV, .calCom, .acuity: return nil
         }
     }
 
     func oauthClientSecret(for providerID: ProviderID) -> String? {
         switch providerID {
-        case .googleCalendar: return googleClientSecret
         case .calendly: return calendlyClientSecret
         case .acuity: return acuityClientSecret
-        case .eventKit, .microsoftGraph, .calDAV, .calCom: return nil
+        case .eventKit, .googleCalendar, .microsoftGraph, .calDAV, .calCom: return nil
         }
     }
 }
@@ -53,13 +47,9 @@ enum ConnectorConfig {
         return base.appendingPathComponent("connectors.json")
     }
 
-    /// Publisher-registered OAuth client IDs bundled with the app so end users can
-    /// connect by just logging in (no per-user app registration). Client IDs are
-    /// public and safe to ship; fill these once the Nudgebar OAuth apps are
-    /// registered (Google "iOS" client, Azure multi-tenant app, Calendly app).
+    /// Publisher-registered OAuth client IDs bundled with the app so users can
+    /// connect by just logging in. Client IDs are public and safe to ship.
     enum Bundled {
-        static let googleClientID: String? = nil
-        static let microsoftClientID: String? = nil
         static let calendlyClientID: String? = nil
     }
 
@@ -69,10 +59,6 @@ enum ConnectorConfig {
            let decoded = try? JSONDecoder().decode(ConnectorClientConfig.self, from: data) {
             config = decoded
         }
-        // A user-supplied client ID overrides the bundled default; otherwise fall
-        // back to the bundled one so users can connect without their own app.
-        if config.googleClientID?.isEmpty != false { config.googleClientID = Bundled.googleClientID }
-        if config.microsoftClientID?.isEmpty != false { config.microsoftClientID = Bundled.microsoftClientID }
         if config.calendlyClientID?.isEmpty != false { config.calendlyClientID = Bundled.calendlyClientID }
         return config
     }
@@ -86,35 +72,20 @@ enum ConnectorConfig {
         }
     }
 
-    /// The OAuth redirect URI + callback scheme for a provider. Google only accepts
-    /// its reverse-DNS scheme (derived from the client ID); others use the app scheme.
     static func redirect(for providerID: ProviderID, clientID: String) -> (uri: URL, scheme: String) {
-        let suffix = ".apps.googleusercontent.com"
-        if providerID == .googleCalendar, clientID.hasSuffix(suffix) {
-            let scheme = "com.googleusercontent.apps.\(clientID.replacingOccurrences(of: suffix, with: ""))"
-            return (URL(string: "\(scheme):/oauth")!, scheme)
-        }
-        return (redirectURI, redirectScheme)
+        (redirectURI, redirectScheme)
     }
 
-    /// Human-facing redirect URI to register in the provider's console.
     static func redirectHint(for providerID: ProviderID) -> String {
-        providerID == .googleCalendar
-            ? "Auto-derived — create an \"iOS\" OAuth client (any bundle ID); no redirect entry needed."
-            : redirectURI.absoluteString
+        redirectURI.absoluteString
     }
 
-    /// True when the provider has the credentials it needs to connect.
     static func isConfigured(_ providerID: ProviderID, config: ConnectorClientConfig = load()) -> Bool {
         switch providerID {
-        case .eventKit, .calDAV:
-            return true // EventKit needs no config; CalDAV credentials are entered per account
-        case .googleCalendar, .microsoftGraph, .calendly:
-            return config.oauthClientID(for: providerID)?.isEmpty == false
-        case .calCom:
-            return config.calComAPIKey?.isEmpty == false
-        case .acuity:
-            return config.acuityClientID?.isEmpty == false
+        case .calendly:
+            return config.oauthClientID(for: .calendly)?.isEmpty == false
+        case .eventKit, .googleCalendar, .microsoftGraph, .calDAV, .calCom, .acuity:
+            return true
         }
     }
 }

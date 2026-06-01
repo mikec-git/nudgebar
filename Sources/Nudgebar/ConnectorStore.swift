@@ -114,19 +114,14 @@ final class ConnectorStore: ObservableObject {
 enum ConnectorProviderFactory {
     static func make(account: ConnectedAccount, config: ConnectorClientConfig = ConnectorConfig.load()) -> CalendarSyncProvider? {
         switch account.providerID {
-        case .googleCalendar, .microsoftGraph, .calendly:
-            guard let clientID = config.oauthClientID(for: account.providerID), !clientID.isEmpty,
-                  let metadata = ProviderAuthCatalog.metadata(providerID: account.providerID, clientID: clientID, redirectURI: ConnectorConfig.redirectURI) else {
+        case .calendly:
+            guard let clientID = config.oauthClientID(for: .calendly), !clientID.isEmpty,
+                  let metadata = ProviderAuthCatalog.metadata(providerID: .calendly, clientID: clientID, redirectURI: ConnectorConfig.redirectURI) else {
                 return nil
             }
-            let reference = ConnectorCredentials.oauthRefreshReference(providerID: account.providerID, accountID: account.id)
-            let tokenManager = OAuthTokenManager(metadata: metadata, clientSecret: config.oauthClientSecret(for: account.providerID), refreshReference: reference)
-            switch account.providerID {
-            case .googleCalendar: return GoogleCalendarProvider(account: account, tokenManager: tokenManager)
-            case .microsoftGraph: return MicrosoftGraphProvider(account: account, tokenManager: tokenManager)
-            case .calendly: return CalendlyProvider(account: account, tokenManager: tokenManager)
-            default: return nil
-            }
+            let reference = ConnectorCredentials.oauthRefreshReference(providerID: .calendly, accountID: account.id)
+            let tokenManager = OAuthTokenManager(metadata: metadata, clientSecret: config.oauthClientSecret(for: .calendly), refreshReference: reference)
+            return CalendlyProvider(account: account, tokenManager: tokenManager)
         case .calCom:
             guard let reference = account.credentialReference,
                   let apiKey = ConnectorCredentials.read(reference: reference), !apiKey.isEmpty else {
@@ -145,8 +140,9 @@ enum ConnectorProviderFactory {
                 return nil
             }
             return CalDAVProvider(account: account, credentials: credentials)
-        case .eventKit:
-            // EventKit is handled directly by CalendarAccess.
+        case .eventKit, .googleCalendar, .microsoftGraph:
+            // EventKit is handled directly by CalendarAccess; Google/Microsoft are
+            // covered through macOS (EventKit), not a direct connector.
             return nil
         }
     }

@@ -105,8 +105,8 @@ enum CalendlyMapper {
     }
 
     private static func occurrence(from event: Event, account: ConnectedAccount, source: CalendarSource) -> AlertOccurrence? {
-        guard let startRaw = event.start_time, let start = GoogleCalendarMapper.parseDate(startRaw) else { return nil }
-        let end = event.end_time.flatMap(GoogleCalendarMapper.parseDate) ?? start.addingTimeInterval(1800)
+        guard let startRaw = event.start_time, let start = CalendarDateParsing.parse(startRaw) else { return nil }
+        let end = event.end_time.flatMap(CalendarDateParsing.parse) ?? start.addingTimeInterval(1800)
         let externalID = event.uri.map { String($0.split(separator: "/").last ?? "") } ?? startRaw
         let status: AlertOccurrenceStatus = event.status == "canceled" ? .cancelled : .confirmed
         let meetingURL = event.location?.join_url.flatMap { URL(string: $0) }
