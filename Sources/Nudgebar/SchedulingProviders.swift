@@ -32,13 +32,20 @@ final class CalComProvider: CalendarSyncProvider {
         guard let source = sources.first else {
             return ProviderSyncResult(occurrences: [], completedAt: Date())
         }
-        var components = URLComponents(string: "https://api.cal.com/v1/bookings")!
-        components.queryItems = [URLQueryItem(name: "apiKey", value: apiKey)]
+        let formatter = ISO8601DateFormatter()
+        var components = URLComponents(string: "https://api.cal.com/v2/bookings")!
+        components.queryItems = [
+            URLQueryItem(name: "status", value: "upcoming"),
+            URLQueryItem(name: "afterStart", value: formatter.string(from: request.windowStart))
+        ]
         var urlRequest = URLRequest(url: components.url!)
+        urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        urlRequest.setValue("2024-08-13", forHTTPHeaderField: "cal-api-version")
         urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
         let (data, response) = try await session.data(for: urlRequest)
-        guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
-            throw ProviderSyncError.transport(String(data: data, encoding: .utf8) ?? "Cal.com request failed")
+        let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+        guard 200..<300 ~= status else {
+            throw ProviderSyncError.transport("HTTP \(status): " + (String(data: data, encoding: .utf8) ?? "Cal.com request failed"))
         }
         let occurrences = try CalComMapper.occurrences(from: data, account: request.account, source: source, windowStart: request.windowStart, windowEnd: request.windowEnd)
         let cursor = SyncCursor(providerID: .calCom, accountID: request.account.id, sourceID: source.id, value: "polled", updatedAt: Date())
@@ -47,30 +54,41 @@ final class CalComProvider: CalendarSyncProvider {
 }
 
 enum CalComMapper {
-    private struct Response: Decodable { let bookings: [Booking]? }
+    private struct Response: Decodable { let data: [Booking]? }
     private struct Booking: Decodable {
         let uid: String?
         let title: String?
-        let description: String?
-        let startTime: String?
-        let endTime: String?
+        let start: String?
+        let end: String?
         let status: String?
         let location: String?
+
+        enum CodingKeys: String, CodingKey { case uid, title, start, end, status, location }
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            uid = try container.decodeIfPresent(String.self, forKey: .uid)
+            title = try container.decodeIfPresent(String.self, forKey: .title)
+            start = try container.decodeIfPresent(String.self, forKey: .start)
+            end = try container.decodeIfPresent(String.self, forKey: .end)
+            status = try container.decodeIfPresent(String.self, forKey: .status)
+            // v2 location may be a plain string or a structured object; tolerate either.
+            location = try? container.decodeIfPresent(String.self, forKey: .location)
+        }
     }
 
     static func occurrences(from data: Data, account: ConnectedAccount, source: CalendarSource, windowStart: Date, windowEnd: Date) throws -> [AlertOccurrence] {
         let response = try JSONDecoder().decode(Response.self, from: data)
-        return (response.bookings ?? []).compactMap { booking in
+        return (response.data ?? []).compactMap { booking in
             occurrence(from: booking, account: account, source: source)
         }
         .filter { $0.startDate >= windowStart && $0.startDate <= windowEnd }
     }
 
     private static func occurrence(from booking: Booking, account: ConnectedAccount, source: CalendarSource) -> AlertOccurrence? {
-        guard let startRaw = booking.startTime, let start = CalendarDateParsing.parse(startRaw) else { return nil }
-        let end = booking.endTime.flatMap(CalendarDateParsing.parse) ?? start.addingTimeInterval(1800)
+        guard let startRaw = booking.start, let start = CalendarDateParsing.parse(startRaw) else { return nil }
+        let end = booking.end.flatMap(CalendarDateParsing.parse) ?? start.addingTimeInterval(1800)
         let externalID = booking.uid ?? startRaw
-        let status: AlertOccurrenceStatus = (booking.status == "cancelled" || booking.status == "canceled") ? .cancelled : .confirmed
+        let status: AlertOccurrenceStatus = (booking.status == "cancelled" || booking.status == "rejected") ? .cancelled : .confirmed
         let meetingURL = booking.location.flatMap { URL(string: $0) }
         return AlertOccurrence(
             id: "cal_com:\(account.id):\(source.id):\(externalID)",

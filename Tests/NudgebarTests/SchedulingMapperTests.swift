@@ -12,9 +12,9 @@ final class CalComMapperTests: XCTestCase {
 
     func testParsesBookingsWithinWindow() throws {
         let json = """
-        {"bookings":[
-          {"uid":"BK1","title":"30 Min Meeting","startTime":"2026-01-15T10:00:00.000Z","endTime":"2026-01-15T10:30:00.000Z","status":"accepted","location":"https://meet.example.com/x"},
-          {"uid":"BK2","title":"Way later","startTime":"2030-01-01T10:00:00.000Z","endTime":"2030-01-01T10:30:00.000Z","status":"accepted"}
+        {"status":"success","data":[
+          {"uid":"BK1","title":"30 Min Meeting","start":"2026-01-15T10:00:00.000Z","end":"2026-01-15T10:30:00.000Z","status":"accepted","location":"https://meet.example.com/x"},
+          {"uid":"BK2","title":"Way later","start":"2030-01-01T10:00:00.000Z","end":"2030-01-01T10:30:00.000Z","status":"accepted"}
         ]}
         """.data(using: .utf8)!
         let occurrences = try CalComMapper.occurrences(from: json, account: account, source: source, windowStart: windowStart, windowEnd: windowEnd)

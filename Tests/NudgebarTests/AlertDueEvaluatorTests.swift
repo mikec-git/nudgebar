@@ -202,6 +202,47 @@ final class AlertDueEvaluatorTests: XCTestCase {
         XCTAssertTrue(due.isEmpty)
     }
 
+    // MARK: - snoozePresets
+
+    private let presets = [1, 5, 10]
+
+    func testSnoozePresetsLimitedToTimeRemaining() {
+        // 5 minutes out -> only 1 and 5 (not 10).
+        XCTAssertEqual(
+            AlertDueEvaluator.snoozePresets(presets, secondsUntilStart: 5 * 60, isAllDay: false),
+            [1, 5]
+        )
+    }
+
+    func testSnoozePresetsRoundUpToCoverProcessingDelay() {
+        // Just under 5 minutes still offers 5 (we round the remaining minutes up).
+        XCTAssertEqual(
+            AlertDueEvaluator.snoozePresets(presets, secondsUntilStart: 5 * 60 - 3, isAllDay: false),
+            [1, 5]
+        )
+    }
+
+    func testSnoozePresetsAllWhenFarOut() {
+        XCTAssertEqual(
+            AlertDueEvaluator.snoozePresets(presets, secondsUntilStart: 30 * 60, isAllDay: false),
+            [1, 5, 10]
+        )
+    }
+
+    func testSnoozePresetsEmptyWhenStarted() {
+        XCTAssertTrue(
+            AlertDueEvaluator.snoozePresets(presets, secondsUntilStart: -10, isAllDay: false).isEmpty
+        )
+    }
+
+    func testSnoozePresetsAllForAllDay() {
+        // All-day events have no meaningful countdown, so offer every preset.
+        XCTAssertEqual(
+            AlertDueEvaluator.snoozePresets(presets, secondsUntilStart: -10_000, isAllDay: true),
+            [1, 5, 10]
+        )
+    }
+
     // MARK: - Integration: the "didn't alert after editing" bug
 
     func testEditedEventReArmsAndBecomesDue() {

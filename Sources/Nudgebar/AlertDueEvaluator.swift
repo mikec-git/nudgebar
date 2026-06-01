@@ -69,4 +69,17 @@ enum AlertDueEvaluator {
             return now >= fire
         }
     }
+
+    /// Snooze presets that still land before the event starts (snoozing past the
+    /// start is pointless). All-day events have no meaningful start, so all presets
+    /// are offered.
+    static func snoozePresets(
+        _ presets: [Int],
+        secondsUntilStart: TimeInterval,
+        isAllDay: Bool
+    ) -> [Int] {
+        guard !isAllDay else { return presets }
+        let remainingMinutes = Int(ceil(max(0, secondsUntilStart) / 60))
+        return presets.filter { $0 <= remainingMinutes }
+    }
 }

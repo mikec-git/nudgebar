@@ -1,23 +1,22 @@
-import NudgebarAuth
 import NudgebarCore
 import NudgebarProviders
 import Foundation
 
-/// Real Calendly client (scheduled bookings). Decoding lives in the pure,
-/// unit-tested `CalendlyMapper`.
+/// Real Calendly client (scheduled bookings), authenticated with a Calendly
+/// personal access token. Decoding lives in the pure, unit-tested `CalendlyMapper`.
 final class CalendlyProvider: CalendarSyncProvider {
     let descriptor: ProviderDescriptor
     private let account: ConnectedAccount
-    private let tokenManager: OAuthTokenManager
+    private let token: String
     private let session: URLSession
 
-    init(account: ConnectedAccount, tokenManager: OAuthTokenManager, session: URLSession = .shared) {
+    init(account: ConnectedAccount, personalAccessToken: String, session: URLSession = .shared) {
         self.account = account
-        self.tokenManager = tokenManager
+        self.token = personalAccessToken
         self.session = session
         self.descriptor = ProviderDescriptor(
             id: .calendly,
-            authMode: .oauthPKCE,
+            authMode: .apiKey,
             capabilities: [.readEvents, .schedulingBookings, .pollingSync],
             notes: "Calendly scheduled events"
         )
@@ -26,8 +25,7 @@ final class CalendlyProvider: CalendarSyncProvider {
     func discoverAccounts() async throws -> [ConnectedAccount] { [account] }
 
     func discoverSources(for account: ConnectedAccount) async throws -> [CalendarSource] {
-        let token = try await tokenManager.accessToken()
-        let data = try await get(URL(string: "https://api.calendly.com/users/me")!, token: token)
+        let data = try await get(URL(string: "https://api.calendly.com/users/me")!)
         guard let source = CalendlyMapper.source(from: data, account: account) else {
             throw ProviderSyncError.sourceUnavailable(account.id)
         }
@@ -38,7 +36,6 @@ final class CalendlyProvider: CalendarSyncProvider {
     func incrementalSync(request: ProviderSyncRequest) async throws -> ProviderSyncResult { try await sync(request) }
 
     private func sync(_ request: ProviderSyncRequest) async throws -> ProviderSyncResult {
-        let token = try await tokenManager.accessToken()
         let sources = request.sources.isEmpty ? try await discoverSources(for: request.account) : request.sources
         guard let source = sources.first else {
             return ProviderSyncResult(occurrences: [], completedAt: Date())
@@ -53,18 +50,19 @@ final class CalendlyProvider: CalendarSyncProvider {
             URLQueryItem(name: "sort", value: "start_time:asc"),
             URLQueryItem(name: "count", value: "100")
         ]
-        let data = try await get(components.url!, token: token)
+        let data = try await get(components.url!)
         let occurrences = try CalendlyMapper.occurrences(from: data, account: request.account, source: source)
         let cursor = SyncCursor(providerID: .calendly, accountID: request.account.id, sourceID: source.id, value: "polled", updatedAt: Date())
         return ProviderSyncResult(occurrences: occurrences, nextCursor: cursor, completedAt: Date())
     }
 
-    private func get(_ url: URL, token: String) async throws -> Data {
+    private func get(_ url: URL) async throws -> Data {
         var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
-            throw ProviderSyncError.transport(String(data: data, encoding: .utf8) ?? "Calendly request failed")
+        let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+        guard 200..<300 ~= status else {
+            throw ProviderSyncError.transport("HTTP \(status): " + (String(data: data, encoding: .utf8) ?? "Calendly request failed"))
         }
         return data
     }
@@ -91,7 +89,7 @@ enum CalendlyMapper {
         }
         return CalendarSource(
             id: uri,
-            title: response.resource?.name ?? "Calendly",
+            title: "Calendly",
             sourceTitle: "Calendly",
             providerID: .calendly,
             accountID: account.id,

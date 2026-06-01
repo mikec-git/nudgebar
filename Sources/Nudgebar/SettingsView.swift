@@ -304,9 +304,9 @@ private struct ConnectorsSection: View {
 
     // EventKit covers Google/Microsoft/iCloud via macOS, so the advanced direct
     // connectors are the cloud ones plus the scheduling providers.
-    private let providers: [ProviderID] = [.calDAV, .calendly, .calCom, .acuity]
+    private let providers: [ProviderID] = [.calendly, .calCom]
     private let implemented: Set<ProviderID> = [.calendly, .calCom, .acuity, .calDAV]
-    private let oauthProviders: Set<ProviderID> = [.calendly]
+    private let oauthProviders: Set<ProviderID> = []
     @State private var credentialProvider: ProviderID?
     @State private var oauthSetupProvider: ProviderID?
 
@@ -323,10 +323,16 @@ private struct ConnectorsSection: View {
                 }
             }
             if let error = model.connectError {
-                Text(error).font(Brand.font(11)).foregroundStyle(.red).padding(.bottom, 8)
+                Text(error).font(Brand.font(11)).foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true).padding(.top, 8)
             }
-            Text("Add OAuth client IDs to \(ConnectorConfig.fileURL.path) to enable cloud connectors. Local calendars work via EventKit.")
-                .font(Brand.font(11)).foregroundStyle(Brand.stone)
+            if let syncError = connectorStore.lastSyncError {
+                Text("Sync error — \(syncError)").font(Brand.font(11)).foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true).padding(.top, 8)
+            } else if connectorStore.hasAccounts {
+                Text("Synced \(connectorStore.occurrences.count) connector event(s) for today/tomorrow.")
+                    .font(Brand.font(11)).foregroundStyle(Brand.stone).padding(.top, 8)
+            }
         }
         .sheet(item: $credentialProvider) { provider in
             CredentialEntrySheet(
@@ -485,6 +491,13 @@ private struct AlertsSection: View {
         VStack(alignment: .leading, spacing: 0) {
             SectionHeader(title: "Alerts", subtitle: "Sound, auto-dismiss, snooze, and delivery.")
 
+            SettingsGroup(eyebrow: "Preview") {
+                SettingRow(title: "Send test alert", subtitle: "Show a sample alert now, ignoring schedule") {
+                    Button("Send") { model.testAlert() }
+                        .buttonStyle(.plain).font(Brand.font(12, .semibold)).foregroundStyle(Brand.blush)
+                }
+            }
+
             SettingsGroup(eyebrow: "Auto-dismiss") {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
@@ -505,12 +518,12 @@ private struct AlertsSection: View {
             }
 
             SettingsGroup(eyebrow: "Sound") {
-                SettingRow(title: "Alert sound") {
+                SettingRow(title: "Alert sound", subtitle: "Loops until you snooze or dismiss") {
                     Button("Preview") { model.previewSound(named: preferences.soundName) }
                         .buttonStyle(.plain).font(Brand.font(12, .semibold)).foregroundStyle(Brand.blush)
                 }
                 RowDivider()
-                FlowChips(items: AlertSoundCatalog.sounds.map(\.name), selected: preferences.soundName) { name in
+                FlowChips(items: AlertSoundCatalog.sounds, selected: preferences.soundName) { name in
                     preferences.soundName = name
                     model.previewSound(named: name)
                 }
@@ -534,7 +547,14 @@ private struct AlertsSection: View {
                 if preferences.allDayAlertsEnabled {
                     RowDivider()
                     SettingRow(title: "Alert at") {
-                        DatePicker("", selection: allDayTimeBinding, displayedComponents: .hourAndMinute).labelsHidden()
+                        BrandMenu(
+                            options: alertTimeOptions,
+                            label: timeLabel,
+                            selection: Binding(
+                                get: { snappedAlertMinutes },
+                                set: { preferences.allDayAlertHour = $0 / 60; preferences.allDayAlertMinute = $0 % 60 }
+                            )
+                        )
                     }
                     RowDivider()
                     SettingRow(title: "Day") {
@@ -549,20 +569,20 @@ private struct AlertsSection: View {
         }
     }
 
-    private var allDayTimeBinding: Binding<Date> {
-        Binding(
-            get: {
-                var components = DateComponents()
-                components.hour = preferences.allDayAlertHour
-                components.minute = preferences.allDayAlertMinute
-                return Calendar.current.date(from: components) ?? Date()
-            },
-            set: { newValue in
-                let components = Calendar.current.dateComponents([.hour, .minute], from: newValue)
-                preferences.allDayAlertHour = components.hour ?? 9
-                preferences.allDayAlertMinute = components.minute ?? 0
-            }
-        )
+    /// Times of day (minutes since midnight) offered in the "Alert at" dropdown.
+    private var alertTimeOptions: [Int] { Array(stride(from: 0, to: 24 * 60, by: 30)) }
+
+    /// Current alert time snapped to the nearest 30-minute option for display.
+    private var snappedAlertMinutes: Int {
+        let raw = preferences.allDayAlertHour * 60 + preferences.allDayAlertMinute
+        return alertTimeOptions.min(by: { abs($0 - raw) < abs($1 - raw) }) ?? raw
+    }
+
+    private func timeLabel(_ minutes: Int) -> String {
+        var components = DateComponents()
+        components.hour = minutes / 60
+        components.minute = minutes % 60
+        return (Calendar.current.date(from: components) ?? Date()).formatted(date: .omitted, time: .shortened)
     }
 
     private func offsetLabel(_ offset: Int) -> String {
@@ -581,23 +601,23 @@ private struct AlertsSection: View {
 }
 
 private struct FlowChips: View {
-    let items: [String]
+    let items: [AlertSound]
     let selected: String
     let onTap: (String) -> Void
 
-    private let columns = [GridItem(.adaptive(minimum: 76), spacing: 8)]
+    private let columns = [GridItem(.adaptive(minimum: 92), spacing: 8)]
 
     var body: some View {
         LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-            ForEach(items, id: \.self) { item in
-                Button { onTap(item) } label: {
-                    Text(item)
+            ForEach(items) { sound in
+                Button { onTap(sound.name) } label: {
+                    Text(sound.label)
                         .font(Brand.font(12, .medium))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(item == selected ? Brand.blush.opacity(0.18) : Brand.blush.opacity(0.05)))
-                        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(item == selected ? Brand.blush.opacity(0.6) : Brand.rule, lineWidth: 1))
-                        .foregroundStyle(item == selected ? Brand.blush : Brand.sand)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(sound.name == selected ? Brand.blush.opacity(0.18) : Brand.blush.opacity(0.05)))
+                        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(sound.name == selected ? Brand.blush.opacity(0.6) : Brand.rule, lineWidth: 1))
+                        .foregroundStyle(sound.name == selected ? Brand.blush : Brand.sand)
                 }
                 .buttonStyle(.plain)
             }
@@ -666,12 +686,19 @@ private struct AboutSection: View {
                 RingLogo(state: .urgent).frame(width: 44, height: 44)
                 VStack(alignment: .leading, spacing: 2) {
                     Wordmark(size: 20)
-                    Text("Version 0.1.0").font(Brand.font(12)).foregroundStyle(Brand.stone)
+                    Text("Version \(AppInfo.version) · \(AppInfo.releaseDate)").font(Brand.font(12)).foregroundStyle(Brand.stone)
                 }
             }
             Text("Nudgebar shows configurable full-screen reminders before your meetings and events, sourced from your local macOS calendars (with cloud connectors planned).")
                 .font(Brand.font(13)).foregroundStyle(Brand.sand)
                 .fixedSize(horizontal: false, vertical: true)
+            Button {
+                if let url = URL(string: AppInfo.repoURL) { NSWorkspace.shared.open(url) }
+            } label: {
+                Label("View on GitHub", systemImage: "arrow.up.forward.square")
+                    .font(Brand.font(13, .semibold)).foregroundStyle(Brand.blush)
+            }
+            .buttonStyle(.plain)
         }
     }
 }
@@ -770,6 +797,22 @@ private struct CredentialEntrySheet: View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Connect \(provider.displayName)")
                 .font(Brand.font(16, .semibold)).foregroundStyle(Brand.blush)
+            if let guide {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(Array(guide.steps.enumerated()), id: \.offset) { index, step in
+                        Text("\(index + 1). \(step)")
+                            .font(Brand.font(11)).foregroundStyle(Brand.sand)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let url = guide.link {
+                        Link(guide.linkLabel, destination: url)
+                            .font(Brand.font(12, .semibold)).tint(Brand.blush)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Brand.ember))
+            }
             ForEach(fields) { field in
                 VStack(alignment: .leading, spacing: 4) {
                     Text(field.label).font(Brand.font(11)).foregroundStyle(Brand.stone)
@@ -793,6 +836,23 @@ private struct CredentialEntrySheet: View {
         .frame(width: 380)
         .background(Brand.ink)
         .environment(\.colorScheme, .dark)
+    }
+
+    private var guide: (steps: [String], link: URL?, linkLabel: String)? {
+        switch provider {
+        case .calendly:
+            return (
+                steps: [
+                    "In Calendly, open Integrations → API & Webhooks.",
+                    "Click \"Get a token now\", name it, then confirm the emailed code.",
+                    "Copy the token and paste it below."
+                ],
+                link: URL(string: "https://calendly.com/integrations/api_webhooks"),
+                linkLabel: "Open Calendly API & Webhooks"
+            )
+        default:
+            return nil
+        }
     }
 
     private func binding(_ key: String) -> Binding<String> {

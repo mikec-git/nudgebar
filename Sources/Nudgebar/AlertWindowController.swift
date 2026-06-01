@@ -134,6 +134,29 @@ final class AlertWindowModel: ObservableObject {
     }
 }
 
+/// Borderless overlay window that can still become key, so it receives keyboard
+/// input. Escape dismisses the alert via `onCancel`.
+private final class AlertPanelWindow: NSWindow {
+    private static let escapeKeyCode: UInt16 = 53
+
+    var onCancel: () -> Void = {}
+
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+
+    override func cancelOperation(_ sender: Any?) {
+        onCancel()
+    }
+
+    override func keyDown(with event: NSEvent) {
+        if event.keyCode == Self.escapeKeyCode {
+            onCancel()
+        } else {
+            super.keyDown(with: event)
+        }
+    }
+}
+
 /// Owns at most one borderless full-screen `NSWindow` and the sound loop bound to
 /// its lifecycle. New due events append cards to the same window.
 @MainActor
@@ -169,7 +192,7 @@ final class AlertWindowController {
     private func openWindow() {
         let screen = NSScreen.main
         let frame = screen?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-        let window = NSWindow(
+        let window = AlertPanelWindow(
             contentRect: frame,
             styleMask: [.borderless],
             backing: .buffered,
@@ -182,6 +205,7 @@ final class AlertWindowController {
         window.isOpaque = false
         window.backgroundColor = .clear
         window.contentView = NSHostingView(rootView: AlertOverlayView(model: model))
+        window.onCancel = { [weak self] in self?.dismissAllVisible() }
 
         self.window = window
         window.makeKeyAndOrderFront(nil)

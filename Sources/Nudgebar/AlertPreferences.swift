@@ -10,7 +10,7 @@ final class AlertPreferences: ObservableObject {
     static let autoDismissRangeSeconds: ClosedRange<Int> = 5...300
     static let autoDismissNeverSentinel: Int = 0
     static let maxTitleChars: Int = 24
-    static let defaultSoundName: String = "Glass"
+    static let defaultSoundName: String = "Rhodes"
     static let allDayOffsetOptions = [0, 1, 2]
 
     private enum Key {
@@ -78,7 +78,8 @@ final class AlertPreferences: ObservableObject {
         self.leadMinutes = defaults.object(forKey: Key.leadMinutes) as? Int ?? 5
         self.pollSeconds = defaults.object(forKey: Key.pollSeconds) as? Int ?? 30
         self.ignoredCalendarIDs = Set(defaults.stringArray(forKey: Key.ignoredCalendarIDs) ?? [])
-        self.soundName = defaults.string(forKey: Key.soundName) ?? Self.defaultSoundName
+        let storedSound = defaults.string(forKey: Key.soundName) ?? Self.defaultSoundName
+        self.soundName = AlertSoundCatalog.sound(named: storedSound) != nil ? storedSound : Self.defaultSoundName
         self.autoDismissSeconds = defaults.object(forKey: Key.autoDismissSeconds) as? Int ?? 30
         self.respectFocus = defaults.object(forKey: Key.respectFocus) as? Bool ?? false
         self.notificationFallbackEnabled = defaults.object(forKey: Key.notificationFallback) as? Bool ?? true

@@ -12,7 +12,7 @@ final class CalendlyMapperTests: XCTestCase {
         let json = #"{"resource":{"uri":"https://api.calendly.com/users/U1","name":"Me"}}"#.data(using: .utf8)!
         let source = CalendlyMapper.source(from: json, account: account)
         XCTAssertEqual(source?.externalID, "https://api.calendly.com/users/U1")
-        XCTAssertEqual(source?.title, "Me")
+        XCTAssertEqual(source?.title, "Calendly")
     }
 
     func testParsesScheduledEvents() throws {

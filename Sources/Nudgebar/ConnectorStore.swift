@@ -115,13 +115,11 @@ enum ConnectorProviderFactory {
     static func make(account: ConnectedAccount, config: ConnectorClientConfig = ConnectorConfig.load()) -> CalendarSyncProvider? {
         switch account.providerID {
         case .calendly:
-            guard let clientID = config.oauthClientID(for: .calendly), !clientID.isEmpty,
-                  let metadata = ProviderAuthCatalog.metadata(providerID: .calendly, clientID: clientID, redirectURI: ConnectorConfig.redirectURI) else {
+            guard let reference = account.credentialReference,
+                  let token = ConnectorCredentials.read(reference: reference), !token.isEmpty else {
                 return nil
             }
-            let reference = ConnectorCredentials.oauthRefreshReference(providerID: .calendly, accountID: account.id)
-            let tokenManager = OAuthTokenManager(metadata: metadata, clientSecret: config.oauthClientSecret(for: .calendly), refreshReference: reference)
-            return CalendlyProvider(account: account, tokenManager: tokenManager)
+            return CalendlyProvider(account: account, personalAccessToken: token)
         case .calCom:
             guard let reference = account.credentialReference,
                   let apiKey = ConnectorCredentials.read(reference: reference), !apiKey.isEmpty else {

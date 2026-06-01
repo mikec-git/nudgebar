@@ -49,6 +49,7 @@ struct AlertOverlayView: View {
             }
         }
         .environment(\.colorScheme, .dark)
+        .onExitCommand { model.dismissAll() }
     }
 }
 
@@ -60,6 +61,14 @@ private struct AlertCardView: View {
 
     private var calendarColor: Color {
         Color(hexString: card.event.calendarColorHex) ?? Brand.blush
+    }
+
+    private var snoozeOptions: [Int] {
+        AlertDueEvaluator.snoozePresets(
+            AlertPreferences.snoozePresetMinutes,
+            secondsUntilStart: card.event.startDate.timeIntervalSince(Date()),
+            isAllDay: card.event.isAllDay
+        )
     }
 
     var body: some View {
@@ -91,7 +100,7 @@ private struct AlertCardView: View {
                 if let conference = card.conference {
                     JoinButton { onJoin(conference.url) }
                 }
-                SnoozeMenu(onSnooze: onSnooze)
+                SnoozeControl(options: snoozeOptions, onSnooze: onSnooze)
                 GhostButton(title: "Dismiss", action: onDismiss)
                 Spacer()
             }
@@ -122,7 +131,18 @@ private struct AlertCardView: View {
                 }
             }
             if let location = card.event.location, !location.isEmpty {
-                MetaItem(systemImage: "mappin.and.ellipse", text: location)
+                if let url = LocationLink.firstURL(in: location) {
+                    Button { onJoin(url) } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "link").font(.system(size: 12))
+                            Text(location).font(Brand.font(13)).underline().lineLimit(1)
+                        }
+                        .foregroundStyle(Brand.blush)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    MetaItem(systemImage: "mappin.and.ellipse", text: location)
+                }
             }
         }
     }
@@ -159,12 +179,19 @@ private struct MetaItem: View {
 private struct CountdownRing: View {
     let remaining: Int
     let total: Int
+    @State private var progress: CGFloat
+
+    init(remaining: Int, total: Int) {
+        self.remaining = remaining
+        self.total = total
+        _progress = State(initialValue: total > 0 ? CGFloat(remaining) / CGFloat(total) : 1)
+    }
 
     var body: some View {
         ZStack {
             Circle().stroke(Brand.blush.opacity(0.14), lineWidth: 4)
             Circle()
-                .trim(from: 0, to: total > 0 ? CGFloat(remaining) / CGFloat(total) : 0)
+                .trim(from: 0, to: progress)
                 .stroke(Brand.blush, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             Text("\(remaining)s")
@@ -172,7 +199,13 @@ private struct CountdownRing: View {
                 .foregroundStyle(Brand.sand)
         }
         .frame(width: 56, height: 56)
-        .animation(.linear(duration: 0.4), value: remaining)
+        // Drain the ring smoothly over the full remaining time (set once), while
+        // the text still ticks per second.
+        .onAppear {
+            withAnimation(.linear(duration: Double(max(0, remaining)))) {
+                progress = 0
+            }
+        }
     }
 }
 
@@ -224,25 +257,34 @@ private struct JoinButton: View {
     }
 }
 
-private struct SnoozeMenu: View {
+/// Inline snooze presets as brand chips (one tap each) instead of a native
+/// dropdown menu, which can't be styled to match the alert.
+private struct SnoozeControl: View {
+    let options: [Int]
     let onSnooze: (Int) -> Void
 
     var body: some View {
-        Menu {
-            ForEach(AlertPreferences.snoozePresetMinutes, id: \.self) { minutes in
-                Button("\(minutes) min") { onSnooze(minutes) }
+        if options.isEmpty {
+            EmptyView()
+        } else {
+            HStack(spacing: 8) {
+                Label("Snooze", systemImage: "zzz")
+                    .font(Brand.font(13, .medium))
+                    .foregroundStyle(Brand.stone)
+                ForEach(options, id: \.self) { minutes in
+                    Button { onSnooze(minutes) } label: {
+                        Text("\(minutes) min")
+                            .font(Brand.font(12, .semibold))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(Capsule().fill(Brand.blush.opacity(0.12)))
+                            .overlay(Capsule().strokeBorder(Brand.ruleStrong, lineWidth: 1))
+                            .foregroundStyle(Brand.sand)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-        } label: {
-            Label("Snooze", systemImage: "zzz")
-                .font(Brand.font(13, .medium))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
         }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-        .background(Capsule().fill(Brand.blush.opacity(0.10)))
-        .overlay(Capsule().strokeBorder(Brand.ruleStrong, lineWidth: 1))
-        .foregroundStyle(Brand.sand)
     }
 }
 
@@ -267,7 +309,7 @@ private struct GhostButton: View {
 /// Warm copper-toned translucent backdrop with a faint blush edge halo.
 private struct WarmBackdrop: View {
     /// Dark scrim over the desktop blur. Lower = more transparent.
-    private let scrimOpacity: Double = 0.42
+    private let scrimOpacity: Double = 0.3
 
     var body: some View {
         ZStack {

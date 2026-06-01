@@ -153,7 +153,14 @@ private struct HeroCard: View {
                 if conference != nil || locationText != nil {
                     HStack(spacing: 8) {
                         if let locationText {
-                            Text(locationText).font(Brand.font(11)).foregroundStyle(Brand.stone).lineLimit(1)
+                            if let url = LocationLink.firstURL(in: locationText) {
+                                Button { onJoin(url) } label: {
+                                    Text(locationText).font(Brand.font(11)).underline().foregroundStyle(Brand.blush).lineLimit(1)
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                Text(locationText).font(Brand.font(11)).foregroundStyle(Brand.stone).lineLimit(1)
+                            }
                         }
                         Spacer()
                         if let conference {
@@ -231,7 +238,8 @@ private struct TimelineRow: View {
                 .frame(width: 62, alignment: .leading)
             Circle().fill(calendarColor).frame(width: 6, height: 6)
             Text(event.title).font(Brand.font(12)).foregroundStyle(Brand.sand).lineLimit(1)
-            Spacer(minLength: 0)
+            Spacer(minLength: 8)
+            Text(event.calendarTitle).font(Brand.font(11)).foregroundStyle(Brand.stone).lineLimit(1)
         }
         .padding(.vertical, 3)
     }

@@ -250,7 +250,9 @@ final class AppModel: ObservableObject {
                 ConnectorCredentialField(key: "username", label: "Username", isSecret: false),
                 ConnectorCredentialField(key: "password", label: "App password", isSecret: true)
             ]
-        case .eventKit, .googleCalendar, .microsoftGraph, .calendly:
+        case .calendly:
+            return [ConnectorCredentialField(key: "token", label: "Personal Access Token", isSecret: true)]
+        case .eventKit, .googleCalendar, .microsoftGraph:
             return []
         }
     }
@@ -263,6 +265,8 @@ final class AppModel: ObservableObject {
         switch providerID {
         case .calCom:
             secret = values["apiKey"] ?? ""
+        case .calendly:
+            secret = values["token"] ?? ""
         case .acuity:
             secret = "\(values["userID"] ?? ""):\(values["apiKey"] ?? "")"
         case .calDAV:
