@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 260" width="900" height="260" role="img" aria-label="Nudgebar">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD6CC" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#FFD6CC" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="900" height="260" rx="28" fill="#211B17"/>
+  <rect x="0.5" y="0.5" width="899" height="259" rx="27.5" fill="none" stroke="#ffffff" stroke-opacity="0.06"/>
+  <circle cx="150" cy="130" r="150" fill="url(#glow)"/>
+
+  <!-- Bold States Ring (urgent): four corner dots + swollen center + two halos -->
+  <g transform="translate(70,50) scale(0.8)" fill="#FFD6CC">
+    <circle cx="100" cy="100" r="95" opacity="0.06"/>
+    <circle cx="100" cy="100" r="46" opacity="0.10"/>
+    <circle cx="100" cy="100" r="34" opacity="0.20"/>
+    <circle cx="100" cy="40" r="14"/>
+    <circle cx="160" cy="100" r="14"/>
+    <circle cx="100" cy="160" r="14"/>
+    <circle cx="40" cy="100" r="14"/>
+    <circle cx="100" cy="100" r="22"/>
+  </g>
+
+  <text x="268" y="150" font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="66" font-weight="700" letter-spacing="-1.5" fill="#C7B6A8">Nudgebar<tspan fill="#FFD6CC">.</tspan></text>
+  <text x="270" y="190" font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="21" font-weight="500" fill="#A6968A">High-visibility calendar reminders for macOS</text>
+</svg>
