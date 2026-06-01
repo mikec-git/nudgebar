@@ -10,6 +10,7 @@ final class CalendarAccess: ObservableObject {
 
     @Published private(set) var authorizationStatus = EKEventStore.authorizationStatus(for: .event)
     @Published private(set) var calendars: [CalendarSource] = []
+    @Published private(set) var accountTitles: [String] = []
     @Published private(set) var lastError: String?
 
     var isAuthorized: Bool {
@@ -128,6 +129,9 @@ final class CalendarAccess: ObservableObject {
             .sorted { lhs, rhs in
                 lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
             }
+
+        accountTitles = Array(Set(store.calendars(for: .event).map { $0.source.title }))
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
     private func requestLegacyAccess() async throws -> Bool {

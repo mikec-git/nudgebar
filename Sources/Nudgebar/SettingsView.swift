@@ -55,7 +55,7 @@ struct SettingsView: View {
         switch section {
         case .general: GeneralSection(model: model, preferences: model.preferences)
         case .calendars: CalendarsSection(model: model, preferences: model.preferences, calendarAccess: model.calendarAccess)
-        case .connectors: ConnectorsSection(model: model, connectorStore: model.connectorStore)
+        case .connectors: ConnectorsSection(model: model, connectorStore: model.connectorStore, calendarAccess: model.calendarAccess)
         case .alerts: AlertsSection(model: model, preferences: model.preferences)
         case .shortcuts: ShortcutsSection(preferences: model.preferences)
         case .about: AboutSection()
@@ -306,9 +306,12 @@ private struct CalendarRuleRow: View {
 private struct ConnectorsSection: View {
     @ObservedObject var model: AppModel
     @ObservedObject var connectorStore: ConnectorStore
+    @ObservedObject var calendarAccess: CalendarAccess
 
-    private let providers: [ProviderID] = [.eventKit, .googleCalendar, .microsoftGraph, .calDAV, .calendly, .calCom, .acuity]
-    private let implemented: Set<ProviderID> = [.eventKit, .googleCalendar, .microsoftGraph, .calendly, .calCom, .acuity, .calDAV]
+    // EventKit covers Google/Microsoft/iCloud via macOS, so the advanced direct
+    // connectors are the cloud ones plus the scheduling providers.
+    private let providers: [ProviderID] = [.googleCalendar, .microsoftGraph, .calDAV, .calendly, .calCom, .acuity]
+    private let implemented: Set<ProviderID> = [.googleCalendar, .microsoftGraph, .calendly, .calCom, .acuity, .calDAV]
     private let oauthProviders: Set<ProviderID> = [.googleCalendar, .microsoftGraph, .calendly]
     @State private var credentialProvider: ProviderID?
     @State private var oauthSetupProvider: ProviderID?
@@ -316,7 +319,10 @@ private struct ConnectorsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             SectionHeader(title: "Connectors", subtitle: "Where Nudgebar reads your events.")
-            SettingsGroup(eyebrow: "Sources") {
+
+            eventKitGuide
+
+            SettingsGroup(eyebrow: "Direct connectors — advanced") {
                 ForEach(Array(providers.enumerated()), id: \.element) { index, provider in
                     if index > 0 { RowDivider() }
                     row(provider)
@@ -342,6 +348,50 @@ private struct ConnectorsSection: View {
         .sheet(item: $oauthSetupProvider) { provider in
             OAuthSetupSheet(provider: provider, model: model, onClose: { oauthSetupProvider = nil })
         }
+    }
+
+    private var eventKitGuide: some View {
+        SettingsGroup(eyebrow: "macOS Calendar — recommended") {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("The easiest way to add Google or Outlook: connect them to macOS once. Nudgebar then reads (and can create) their events automatically — no client IDs or logins here.")
+                    .font(Brand.font(12)).foregroundStyle(Brand.sand)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if !calendarAccess.isAuthorized {
+                    Button("Grant Calendar Access") { model.requestCalendarAccess() }
+                        .buttonStyle(.plain).font(Brand.font(13, .semibold)).foregroundStyle(Brand.blush)
+                } else if calendarAccess.accountTitles.isEmpty {
+                    Text("No calendar accounts detected in macOS yet — add one below.")
+                        .font(Brand.font(11)).foregroundStyle(Brand.stone)
+                } else {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("SYNCING VIA MACOS").font(Brand.font(10, .semibold)).kerning(0.6).foregroundStyle(Brand.stone)
+                        ForEach(calendarAccess.accountTitles, id: \.self) { title in
+                            Label(title, systemImage: "checkmark.circle.fill")
+                                .font(Brand.font(12)).foregroundStyle(Color(brandHex: 0x57C97A))
+                        }
+                    }
+                }
+
+                Text("Add one: System Settings → Internet Accounts → Add Account → Google or Microsoft Exchange → sign in → turn on Calendars.")
+                    .font(Brand.font(11)).foregroundStyle(Brand.stone)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Open Internet Accounts…") { openInternetAccounts() }
+                    .buttonStyle(.plain).font(Brand.font(12, .semibold)).foregroundStyle(Brand.blush)
+            }
+            .padding(14)
+        }
+    }
+
+    private func openInternetAccounts() {
+        let candidates = [
+            "x-apple.systempreferences:com.apple.Internet-Accounts-Settings.extension",
+            "x-apple.systempreferences:com.apple.preferences.internetaccounts"
+        ]
+        for raw in candidates {
+            if let url = URL(string: raw), NSWorkspace.shared.open(url) { return }
+        }
+        if let settings = URL(string: "x-apple.systempreferences:") { NSWorkspace.shared.open(settings) }
     }
 
     @ViewBuilder
