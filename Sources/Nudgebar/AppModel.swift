@@ -27,6 +27,7 @@ final class AppModel: ObservableObject {
     @Published var connectError: String?
     private let oauthFlow = OAuthFlow()
 
+    private let defaults: UserDefaults
     private let notifier = NotificationDelivery()
     private let previewPlayer = SoundPlayer()
     private var monitor: EventMonitor?
@@ -38,6 +39,7 @@ final class AppModel: ObservableObject {
     private var focusActive: Bool { false }
 
     init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         self.preferences = AlertPreferences(defaults: defaults)
         self.calendarAccess = CalendarAccess()
         self.presenter = AlertPresenter()
@@ -64,6 +66,7 @@ final class AppModel: ObservableObject {
             preferences: preferences,
             snoozeStore: snoozeStore,
             connectorStore: connectorStore,
+            defaults: defaults,
             present: { [weak self] event in
                 guard let self else { return }
                 if event.isAllDay {
@@ -308,6 +311,8 @@ final class EventMonitor {
     private let preferences: AlertPreferences
     private let snoozeStore: SnoozeStore
     private let connectorStore: ConnectorStore
+    private let defaults: UserDefaults
+    private static let alertedKey = "alertedEventIDs"
     private let present: @MainActor (AlertCandidate) -> Void
     private let onTick: @MainActor () -> Void
     private var task: Task<Void, Never>?
@@ -318,6 +323,7 @@ final class EventMonitor {
         preferences: AlertPreferences,
         snoozeStore: SnoozeStore,
         connectorStore: ConnectorStore,
+        defaults: UserDefaults = .standard,
         present: @escaping @MainActor (AlertCandidate) -> Void,
         onTick: @escaping @MainActor () -> Void = {}
     ) {
@@ -325,8 +331,13 @@ final class EventMonitor {
         self.preferences = preferences
         self.snoozeStore = snoozeStore
         self.connectorStore = connectorStore
+        self.defaults = defaults
         self.present = present
         self.onTick = onTick
+        if let data = defaults.data(forKey: Self.alertedKey),
+           let decoded = try? JSONDecoder().decode([String: Date].self, from: data) {
+            self.alertedEvents = decoded
+        }
     }
 
     deinit {
@@ -406,13 +417,22 @@ final class EventMonitor {
         }
 
         pruneAlertHistory(relativeTo: now)
+        persistAlerted()
         onTick()
     }
 
     private func pruneAlertHistory(relativeTo now: Date) {
-        let cutoff = now.addingTimeInterval(-24 * 60 * 60)
+        // Keep recent history long enough that dismissed multi-day / all-day events
+        // stay suppressed rather than re-firing after a day.
+        let cutoff = now.addingTimeInterval(-30 * 24 * 60 * 60)
         alertedEvents = alertedEvents.filter { _, startDate in
             startDate >= cutoff
+        }
+    }
+
+    private func persistAlerted() {
+        if let data = try? JSONEncoder().encode(alertedEvents) {
+            defaults.set(data, forKey: Self.alertedKey)
         }
     }
 }

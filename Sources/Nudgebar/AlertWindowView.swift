@@ -35,10 +35,12 @@ struct AlertOverlayView: View {
                                 onSnooze: { minutes in model.snooze(id: card.id, minutes: minutes) },
                                 onDismiss: { model.dismiss(id: card.id) }
                             )
+                            .frame(maxWidth: 620)
                         }
                     }
-                    .frame(maxWidth: 660)
+                    .frame(maxWidth: .infinity)
                     .padding(.horizontal, 40)
+                    .padding(.vertical, 10)
                 }
 
                 Spacer(minLength: 12)
@@ -68,10 +70,9 @@ private struct AlertCardView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
-            RoundedRectangle(cornerRadius: 2)
+            Rectangle()
                 .fill(calendarColor)
-                .frame(width: 4)
-                .padding(.vertical, 4)
+                .frame(width: 5)
 
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top) {
@@ -107,13 +108,15 @@ private struct AlertCardView: View {
                 }
             }
             .padding(24)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(
+        .background(Brand.ember)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .overlay(
             RoundedRectangle(cornerRadius: 18)
-                .fill(Brand.ember)
-                .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(card.isUrgent ? Brand.blush.opacity(0.55) : Brand.rule, lineWidth: card.isUrgent ? 2 : 1))
+                .strokeBorder(card.isUrgent ? Brand.blush.opacity(0.55) : Brand.rule, lineWidth: card.isUrgent ? 2 : 1)
         )
-        .shadow(color: .black.opacity(0.45), radius: 30, y: 16)
+        .shadow(color: .black.opacity(0.4), radius: 28, y: 14)
     }
 
     private var metaRow: some View {
