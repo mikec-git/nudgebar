@@ -19,7 +19,7 @@
 
 ## Why
 
-Calendar notifications are easy to miss — a banner slides in while you're heads-down
+Calendar notifications are easy to miss - a banner slides in while you're heads-down
 and slides away. Nudgebar lives in the menu bar with a live countdown to your next
 event, and when something is about to start it can take over the screen with a clear,
 one-glance alert (with a one-tap Join for video calls) so you actually show up.
@@ -28,12 +28,17 @@ one-glance alert (with a one-tap Join for video calls) so you actually show up.
 
 <p align="center">
   <img src="docs/screenshots/alert.png" width="660" alt="Full-screen alert"><br>
-  <em>Full-screen alert — title, time, countdown ring, snooze, and one-tap Join.</em>
+  <em>Full-screen alert - title, time, countdown ring, snooze, and one-tap Join.</em>
 </p>
 
 <p align="center">
   <img src="docs/screenshots/popover.png" width="300" alt="Menu-bar popover"><br>
-  <em>Menu-bar popover — upcoming events grouped by Today / Tomorrow, with per-calendar colors.</em>
+  <em>Menu-bar popover - upcoming events grouped by Today / Tomorrow, with per-calendar colors.</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/settings.png" width="660" alt="Settings window"><br>
+  <em>Settings - per-calendar rules, connectors, alert sounds, shortcuts, and more.</em>
 </p>
 
 ## Features
@@ -62,7 +67,7 @@ one-glance alert (with a one-tap Join for video calls) so you actually show up.
 
 **Calendars & sources**
 
-- Reads local macOS calendars via EventKit — which already covers **Google, Outlook /
+- Reads local macOS calendars via EventKit - which already covers **Google, Outlook /
   Microsoft 365, and iCloud** once they're added to macOS (Internet Accounts), with no
   client IDs or extra logins.
 - Enable/disable each calendar individually, with an optional per-calendar lead-time
@@ -147,5 +152,5 @@ for local toolchain notes.
 ## License
 
 [MIT](LICENSE). Bundled alert sounds are third-party works under their own licenses
-(public domain / CC0 and the Mixkit Free License) — see
+(public domain / CC0 and the Mixkit Free License) - see
 [`Resources/Sounds/README.md`](Resources/Sounds/README.md).
