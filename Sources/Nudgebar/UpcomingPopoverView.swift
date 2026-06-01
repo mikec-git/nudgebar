@@ -212,36 +212,36 @@ private struct TimelineRow: View {
 }
 
 private struct QuickControls: View {
-    let preferences: AlertPreferences
+    @ObservedObject var preferences: AlertPreferences
     let model: AppModel
 
     var body: some View {
         VStack(spacing: 10) {
-            Toggle("Full-screen alerts", isOn: Binding(
-                get: { preferences.fullScreenAlerts },
-                set: { preferences.fullScreenAlerts = $0 }
-            ))
-            .font(Brand.font(13))
-            .tint(Brand.blush)
-            .foregroundStyle(Brand.sand)
+            Toggle("Full-screen alerts", isOn: $preferences.fullScreenAlerts)
+                .font(Brand.font(13))
+                .tint(Brand.blush)
+                .foregroundStyle(Brand.sand)
 
             HStack {
                 Text("Lead time").font(Brand.font(13)).foregroundStyle(Brand.sand)
                 Spacer()
-                Menu {
-                    ForEach(AlertPreferences.allowedLeadMinutes, id: \.self) { minutes in
-                        Button(minutes == 0 ? "At start" : "\(minutes) min") {
-                            preferences.leadMinutes = minutes
-                            model.refreshUpcoming()
-                        }
+                HStack(spacing: 14) {
+                    Button { adjustLead(by: -1) } label: {
+                        Image(systemName: "chevron.down").font(.system(size: 11, weight: .semibold))
                     }
-                } label: {
+                    .buttonStyle(.plain).foregroundStyle(Brand.blush)
+                    .disabled(preferences.leadMinutes == AlertPreferences.allowedLeadMinutes.first)
+
                     Text(preferences.leadMinutes == 0 ? "At start" : "\(preferences.leadMinutes) min")
-                        .font(Brand.font(12, .medium))
-                        .foregroundStyle(Brand.blush)
+                        .font(Brand.font(12, .medium)).foregroundStyle(Brand.blush)
+                        .frame(minWidth: 56)
+
+                    Button { adjustLead(by: 1) } label: {
+                        Image(systemName: "chevron.up").font(.system(size: 11, weight: .semibold))
+                    }
+                    .buttonStyle(.plain).foregroundStyle(Brand.blush)
+                    .disabled(preferences.leadMinutes == AlertPreferences.allowedLeadMinutes.last)
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
             }
 
             HStack {
@@ -253,5 +253,13 @@ private struct QuickControls: View {
             }
         }
         .padding(16)
+    }
+
+    private func adjustLead(by delta: Int) {
+        let options = AlertPreferences.allowedLeadMinutes
+        let index = options.firstIndex(of: preferences.leadMinutes) ?? 0
+        let next = min(max(index + delta, 0), options.count - 1)
+        preferences.leadMinutes = options[next]
+        model.refreshUpcoming()
     }
 }

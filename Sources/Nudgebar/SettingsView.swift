@@ -177,20 +177,14 @@ private struct BrandMenu<T: Hashable>: View {
     var onChange: () -> Void = {}
 
     var body: some View {
-        Menu {
+        Picker("", selection: Binding(get: { selection }, set: { selection = $0; onChange() })) {
             ForEach(options, id: \.self) { option in
-                Button(label(option)) { selection = option; onChange() }
+                Text(label(option)).tag(option)
             }
-        } label: {
-            HStack(spacing: 5) {
-                Text(label(selection)).font(Brand.font(12, .medium))
-                Image(systemName: "chevron.up.chevron.down").font(.system(size: 9))
-            }
-            .foregroundStyle(Brand.blush)
-            .padding(.horizontal, 11).padding(.vertical, 5)
-            .background(RoundedRectangle(cornerRadius: 7).fill(Brand.blush.opacity(0.10)))
         }
-        .menuStyle(.borderlessButton)
+        .labelsHidden()
+        .pickerStyle(.menu)
+        .tint(Brand.blush)
         .fixedSize()
     }
 }
