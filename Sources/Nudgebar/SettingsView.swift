@@ -532,6 +532,50 @@ private struct AlertsSection: View {
                     Toggle("", isOn: $preferences.respectFocus).labelsHidden()
                 }
             }
+
+            SettingsGroup(eyebrow: "All-day events") {
+                SettingRow(title: "Alert for all-day events", subtitle: "No start time, so alert at a set time") {
+                    Toggle("", isOn: $preferences.allDayAlertsEnabled).labelsHidden()
+                }
+                if preferences.allDayAlertsEnabled {
+                    RowDivider()
+                    SettingRow(title: "Alert at") {
+                        DatePicker("", selection: allDayTimeBinding, displayedComponents: .hourAndMinute).labelsHidden()
+                    }
+                    RowDivider()
+                    SettingRow(title: "Day") {
+                        BrandMenu(options: AlertPreferences.allDayOffsetOptions, label: { offsetLabel($0) }, selection: $preferences.allDayAlertDayOffset)
+                    }
+                    RowDivider()
+                    SettingRow(title: "Delivery") {
+                        BrandMenu(options: [false, true], label: { $0 ? "Full-screen" : "Notification" }, selection: $preferences.allDayAlertFullScreen)
+                    }
+                }
+            }
+        }
+    }
+
+    private var allDayTimeBinding: Binding<Date> {
+        Binding(
+            get: {
+                var components = DateComponents()
+                components.hour = preferences.allDayAlertHour
+                components.minute = preferences.allDayAlertMinute
+                return Calendar.current.date(from: components) ?? Date()
+            },
+            set: { newValue in
+                let components = Calendar.current.dateComponents([.hour, .minute], from: newValue)
+                preferences.allDayAlertHour = components.hour ?? 9
+                preferences.allDayAlertMinute = components.minute ?? 0
+            }
+        )
+    }
+
+    private func offsetLabel(_ offset: Int) -> String {
+        switch offset {
+        case 0: return "Day of"
+        case 1: return "1 day before"
+        default: return "\(offset) days before"
         }
     }
 

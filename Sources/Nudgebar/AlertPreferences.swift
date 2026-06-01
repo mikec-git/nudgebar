@@ -11,6 +11,7 @@ final class AlertPreferences: ObservableObject {
     static let autoDismissNeverSentinel: Int = 0
     static let maxTitleChars: Int = 24
     static let defaultSoundName: String = "Glass"
+    static let allDayOffsetOptions = [0, 1, 2]
 
     private enum Key {
         static let fullScreenAlerts = "fullScreenAlerts"
@@ -23,6 +24,11 @@ final class AlertPreferences: ObservableObject {
         static let notificationFallback = "notificationFallbackEnabled"
         static let calendarRules = "calendarRules"
         static let shortcuts = "shortcuts"
+        static let allDayEnabled = "allDayAlertsEnabled"
+        static let allDayHour = "allDayAlertHour"
+        static let allDayMinute = "allDayAlertMinute"
+        static let allDayOffset = "allDayAlertDayOffset"
+        static let allDayFullScreen = "allDayAlertFullScreen"
     }
 
     private let defaults: UserDefaults
@@ -34,6 +40,11 @@ final class AlertPreferences: ObservableObject {
     @Published var autoDismissSeconds: Int { didSet { defaults.set(autoDismissSeconds, forKey: Key.autoDismissSeconds) } }
     @Published var respectFocus: Bool { didSet { defaults.set(respectFocus, forKey: Key.respectFocus) } }
     @Published var notificationFallbackEnabled: Bool { didSet { defaults.set(notificationFallbackEnabled, forKey: Key.notificationFallback) } }
+    @Published var allDayAlertsEnabled: Bool { didSet { defaults.set(allDayAlertsEnabled, forKey: Key.allDayEnabled) } }
+    @Published var allDayAlertHour: Int { didSet { defaults.set(allDayAlertHour, forKey: Key.allDayHour) } }
+    @Published var allDayAlertMinute: Int { didSet { defaults.set(allDayAlertMinute, forKey: Key.allDayMinute) } }
+    @Published var allDayAlertDayOffset: Int { didSet { defaults.set(allDayAlertDayOffset, forKey: Key.allDayOffset) } }
+    @Published var allDayAlertFullScreen: Bool { didSet { defaults.set(allDayAlertFullScreen, forKey: Key.allDayFullScreen) } }
 
     @Published private var ignoredCalendarIDs: Set<String> {
         didSet { defaults.set(Array(ignoredCalendarIDs), forKey: Key.ignoredCalendarIDs) }
@@ -71,6 +82,11 @@ final class AlertPreferences: ObservableObject {
         self.autoDismissSeconds = defaults.object(forKey: Key.autoDismissSeconds) as? Int ?? 30
         self.respectFocus = defaults.object(forKey: Key.respectFocus) as? Bool ?? false
         self.notificationFallbackEnabled = defaults.object(forKey: Key.notificationFallback) as? Bool ?? true
+        self.allDayAlertsEnabled = defaults.object(forKey: Key.allDayEnabled) as? Bool ?? true
+        self.allDayAlertHour = defaults.object(forKey: Key.allDayHour) as? Int ?? 9
+        self.allDayAlertMinute = defaults.object(forKey: Key.allDayMinute) as? Int ?? 0
+        self.allDayAlertDayOffset = defaults.object(forKey: Key.allDayOffset) as? Int ?? 0
+        self.allDayAlertFullScreen = defaults.object(forKey: Key.allDayFullScreen) as? Bool ?? false
         self.calendarRules = Self.loadCodable([String: CalendarAlertRule].self, forKey: Key.calendarRules, defaults: defaults) ?? [:]
         self.shortcuts = Self.loadCodable([String: ShortcutBinding].self, forKey: Key.shortcuts, defaults: defaults) ?? [:]
     }

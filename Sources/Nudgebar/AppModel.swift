@@ -64,7 +64,14 @@ final class AppModel: ObservableObject {
             preferences: preferences,
             snoozeStore: snoozeStore,
             connectorStore: connectorStore,
-            present: { [weak self] event in self?.fireAlert(event: event) },
+            present: { [weak self] event in
+                guard let self else { return }
+                if event.isAllDay {
+                    self.fireAllDayAlert(event: event)
+                } else {
+                    self.fireAlert(event: event)
+                }
+            },
             onTick: { [weak self] in self?.refreshUpcoming() }
         )
         self.monitor = monitor
@@ -119,6 +126,19 @@ final class AppModel: ObservableObject {
             notifier.deliver(event: event)
         case .suppressed:
             break
+        }
+    }
+
+    /// All-day alerts use their own delivery toggle (notification vs full-screen).
+    func fireAllDayAlert(event: AlertCandidate) {
+        if preferences.allDayAlertFullScreen {
+            alertWindowController().present(
+                event: event,
+                autoDismissSeconds: preferences.autoDismissSeconds,
+                soundName: preferences.effectiveSettings(for: event).soundName
+            )
+        } else {
+            notifier.deliver(event: event)
         }
     }
 
@@ -343,32 +363,44 @@ final class EventMonitor {
         // Sync cloud connectors over the popover window (independent of EventKit auth).
         await connectorStore.sync(windowStart: now, windowEnd: UpcomingEventsList.endOfTomorrow(from: now))
 
+        let enabledCalendarIDs = preferences.enabledCalendarIDs(from: calendarAccess.calendars)
+
         // Look ahead by the largest effective lead so per-calendar overrides are covered.
         let lookAhead = max(preferences.maxEffectiveLeadSeconds, 60)
-        let endDate = now.addingTimeInterval(lookAhead)
         let eventKitEvents = calendarAccess.isAuthorized
-            ? calendarAccess.upcomingEvents(
-                from: now,
-                to: endDate,
-                enabledCalendarIDs: preferences.enabledCalendarIDs(from: calendarAccess.calendars)
-            )
+            ? calendarAccess.upcomingEvents(from: now, to: now.addingTimeInterval(lookAhead), enabledCalendarIDs: enabledCalendarIDs)
             : []
         let candidates = eventKitEvents + connectorStore.occurrences
 
         let activeSnoozes = Set(snoozeStore.snoozedUntil.filter { $0.value > now }.keys)
         let suppressed = Set(alertedEvents.keys).union(activeSnoozes)
 
-        let dueEvents = candidates
+        let timedDue = candidates
             .filter { event in
-                guard event.isAlertable, !suppressed.contains(event.id) else {
-                    return false
-                }
+                guard event.isAlertable, !suppressed.contains(event.id) else { return false }
                 let lead = TimeInterval(max(0, preferences.effectiveSettings(for: event).leadMinutes) * 60)
                 return event.startDate >= now && event.startDate <= now.addingTimeInterval(lead)
             }
             .sorted { $0.startDate < $1.startDate }
 
-        for event in dueEvents {
+        // All-day events alert at a fixed clock time on a chosen day, not a lead time.
+        var allDayDue: [AlertCandidate] = []
+        if preferences.allDayAlertsEnabled, calendarAccess.isAuthorized {
+            let windowEnd = now.addingTimeInterval(TimeInterval(preferences.allDayAlertDayOffset + 2) * 86_400)
+            allDayDue = calendarAccess.upcomingEvents(from: now, to: windowEnd, enabledCalendarIDs: enabledCalendarIDs)
+                .filter { event in
+                    guard event.isAllDay, !suppressed.contains(event.id), event.endDate > now else { return false }
+                    let fire = AllDayAlertSchedule.fireDate(
+                        for: event,
+                        hour: preferences.allDayAlertHour,
+                        minute: preferences.allDayAlertMinute,
+                        dayOffset: preferences.allDayAlertDayOffset
+                    )
+                    return now >= fire
+                }
+        }
+
+        for event in timedDue + allDayDue {
             alertedEvents[event.id] = event.startDate
             present(event)
         }
