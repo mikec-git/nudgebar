@@ -103,8 +103,9 @@ final class CalendarAccess: ObservableObject {
             calendars: selectedCalendars
         )
 
+        // Include all-day events so they appear in the popover; the alert path
+        // excludes them via AlertOccurrence.isAlertable (they have no lead time).
         return store.events(matching: predicate)
-            .filter { !$0.isAllDay }
             .compactMap(makeAlertCandidate)
     }
 
@@ -166,6 +167,7 @@ final class CalendarAccess: ObservableObject {
             calendarTitle: event.calendar.title,
             location: event.location,
             sourceID: event.calendar.calendarIdentifier,
+            isAllDay: event.isAllDay,
             organizer: event.organizer?.name,
             calendarColorHex: Self.hexString(from: event.calendar.cgColor),
             meetingURL: event.url

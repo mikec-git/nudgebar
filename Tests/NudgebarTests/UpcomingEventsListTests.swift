@@ -55,4 +55,22 @@ final class UpcomingEventsListTests: XCTestCase {
         let many = (0..<30).map { event("e\($0)", offsetHours: Double($0) * 0.1 + 0.1) }
         XCTAssertTrue(UpcomingEventsList.wasTruncated(many, now: now, calendar: calendar))
     }
+
+    func testIncludesOngoingAllDayButNotEndedOnes() {
+        let todayMidnight = calendar.startOfDay(for: now) // before `now` (10:00) but ongoing
+        let ongoingAllDay = AlertOccurrence(
+            id: "today-allday", title: "Holiday",
+            startDate: todayMidnight, endDate: todayMidnight.addingTimeInterval(86_400),
+            calendarTitle: "Personal", isAllDay: true
+        )
+        let endedAllDay = AlertOccurrence(
+            id: "past-allday", title: "Yesterday",
+            startDate: todayMidnight.addingTimeInterval(-86_400), endDate: todayMidnight,
+            calendarTitle: "Personal", isAllDay: true
+        )
+        let pastTimed = event("past", offsetHours: -1)
+
+        let result = UpcomingEventsList.filter([ongoingAllDay, endedAllDay, pastTimed], now: now, calendar: calendar)
+        XCTAssertEqual(result.map(\.id), ["today-allday"])
+    }
 }

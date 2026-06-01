@@ -119,14 +119,16 @@ private struct HeroCard: View {
                         Image(systemName: "zzz").font(.system(size: 10)).foregroundStyle(Brand.stone)
                     }
                     Spacer()
-                    Text(event.startDate.formatted(date: .omitted, time: .shortened))
+                    Text(event.isAllDay ? "All day" : event.startDate.formatted(date: .omitted, time: .shortened))
                         .font(Brand.font(12, .medium)).foregroundStyle(Brand.sand)
                 }
 
                 Text(event.title).font(Brand.font(15, .semibold)).foregroundStyle(Brand.blush).lineLimit(2)
 
                 HStack(spacing: 8) {
-                    LeadPillSmall(seconds: event.startDate.timeIntervalSince(now))
+                    if !event.isAllDay {
+                        LeadPillSmall(seconds: event.startDate.timeIntervalSince(now))
+                    }
                     if let location = event.location, !location.isEmpty, conference == nil {
                         Text(location).font(Brand.font(11)).foregroundStyle(Brand.stone).lineLimit(1)
                     }
@@ -197,7 +199,7 @@ private struct TimelineRow: View {
 
     var body: some View {
         HStack(spacing: 9) {
-            Text(event.startDate.formatted(date: .omitted, time: .shortened))
+            Text(event.isAllDay ? "All day" : event.startDate.formatted(date: .omitted, time: .shortened))
                 .font(Brand.font(12).monospacedDigit())
                 .foregroundStyle(Brand.sand)
                 .frame(width: 62, alignment: .leading)

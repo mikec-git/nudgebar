@@ -16,7 +16,9 @@ final class AppModel: ObservableObject {
     @Published private(set) var upcomingEvents: [AlertCandidate] = []
 
     var nextUpcomingEvent: AlertCandidate? {
-        upcomingEvents.first
+        // The menu-bar countdown is for the next timed event; all-day events still
+        // appear in the popover but have no meaningful countdown.
+        upcomingEvents.first { !$0.isAllDay }
     }
 
     /// Set by the app delegate to open the settings window from the popover/menu.

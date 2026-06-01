@@ -21,11 +21,16 @@ enum UpcomingEventsList {
     ) -> [AlertCandidate] {
         let windowEnd = endOfTomorrow(from: now, calendar: calendar)
         let filtered = events
-            .filter { event in
-                event.startDate >= now && event.startDate <= windowEnd
-            }
+            .filter { isUpcoming($0, now: now, windowEnd: windowEnd) }
             .sorted { $0.startDate < $1.startDate }
         return Array(filtered.prefix(maxEntries))
+    }
+
+    /// Timed events are upcoming when their start is ahead; all-day events span the
+    /// whole day, so include them while still ongoing (end is ahead of now).
+    static func isUpcoming(_ event: AlertCandidate, now: Date, windowEnd: Date) -> Bool {
+        guard event.startDate <= windowEnd else { return false }
+        return event.isAllDay ? event.endDate > now : event.startDate >= now
     }
 
     enum DayGroup: String {
@@ -64,9 +69,7 @@ enum UpcomingEventsList {
         calendar: Calendar = .current
     ) -> Bool {
         let windowEnd = endOfTomorrow(from: now, calendar: calendar)
-        let inWindow = events.filter { event in
-            event.startDate >= now && event.startDate <= windowEnd
-        }
+        let inWindow = events.filter { isUpcoming($0, now: now, windowEnd: windowEnd) }
         return inWindow.count > maxEntries
     }
 }
