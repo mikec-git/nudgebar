@@ -88,3 +88,15 @@ public enum ProviderSyncError: Error, Equatable {
     case invalidResponse(String)
     case transport(String)
 }
+
+extension ProviderSyncError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .credentialsUnavailable(let provider): return "Missing credentials for \(provider.rawValue)."
+        case .sourceUnavailable(let detail): return "Calendar source unavailable: \(detail)"
+        case .unsupported(let detail): return "Unsupported: \(detail)"
+        case .invalidResponse(let detail): return "Invalid response: \(detail)"
+        case .transport(let detail): return detail
+        }
+    }
+}

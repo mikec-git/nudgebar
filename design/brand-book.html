@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nudgebar — Brand book</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#2D2520;
+    --surface:#3A2F28;
+    --surface-2:#42362E;
+    --label:#FFD6CC;
+    --secondary:#C7B6A8;
+    --tertiary:#A6968A;
+    --accent:#FFD6CC;
+    --rule:rgba(255,214,204,0.10);
+    --rule-strong:rgba(255,214,204,0.18);
+    --cal-blue:#6BA3E6;
+    --cal-amber:#E29F45;
+    --cal-purple:#C485D6;
+  }
+  html,body{background:var(--bg);color:var(--label);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+  body{padding:0}
+
+  .book{max-width:1180px;margin:0 auto;padding:0 64px}
+
+  /* ===== COVER ===== */
+  .cover{min-height:88vh;display:flex;flex-direction:column;justify-content:space-between;padding:80px 0 64px;border-bottom:1px solid var(--rule)}
+  .cover-top{display:flex;align-items:center;justify-content:space-between}
+  .cover-top .doc-tag{font-family:'Geist',sans-serif;font-size:11px;font-weight:500;color:var(--tertiary);letter-spacing:0.18em;text-transform:uppercase}
+  .cover-top .doc-meta{font-family:'Geist',sans-serif;font-size:11px;color:var(--tertiary);letter-spacing:0.06em;font-variant-numeric:tabular-nums}
+  .cover-mid{display:flex;align-items:center;gap:48px;margin:80px 0}
+  .cover-mark{flex:none;width:120px;height:120px}
+  .cover-title{font-family:'Geist',sans-serif;font-weight:600;font-size:128px;line-height:0.95;letter-spacing:-4.5px;color:var(--label)}
+  .cover-title .period{color:var(--accent)}
+  .cover-bottom{display:flex;align-items:flex-end;justify-content:space-between;gap:48px}
+  .cover-sub{font-family:'Geist',sans-serif;font-weight:500;font-size:16px;color:var(--secondary);letter-spacing:0.12em;text-transform:uppercase;display:flex;align-items:center;gap:14px;max-width:60ch}
+  .cover-sub::before{content:"";display:inline-block;width:32px;height:1px;background:var(--accent)}
+  .cover-bottom .toc{font-family:'Geist',sans-serif;font-size:11px;color:var(--tertiary);letter-spacing:0.06em;text-align:right}
+  .cover-bottom .toc div{margin-bottom:3px}
+
+  /* ===== SECTION HEAD ===== */
+  .section{padding:96px 0 24px;border-bottom:1px solid var(--rule)}
+  .section:last-of-type{border-bottom:none}
+  .section-head{display:flex;align-items:baseline;gap:24px;margin-bottom:48px}
+  .section-num{font-family:'Geist',sans-serif;font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.16em;font-variant-numeric:tabular-nums;width:40px;flex:none}
+  .section-title{font-family:'Geist',sans-serif;font-weight:600;font-size:36px;letter-spacing:-1.2px;color:var(--label);flex:1}
+  .section-eyebrow{font-family:'Geist',sans-serif;font-size:11px;font-weight:500;color:var(--tertiary);letter-spacing:0.14em;text-transform:uppercase}
+
+  .lead{font-family:'Geist',sans-serif;font-size:18px;line-height:1.55;color:var(--secondary);max-width:60ch;margin-left:64px;margin-bottom:48px}
+
+  /* ===== ESSENCE ===== */
+  .essence-grid{display:grid;grid-template-columns:340px 1fr;gap:64px;align-items:start;margin-left:64px}
+  .essence-mark{width:240px;height:240px}
+  .essence-points{display:flex;flex-direction:column;gap:28px}
+  .essence-point{display:grid;grid-template-columns:80px 1fr;gap:24px;align-items:start}
+  .essence-point .pt-num{font-family:'Geist',sans-serif;font-size:12px;font-weight:600;color:var(--accent);letter-spacing:0.16em}
+  .essence-point .pt-body{font-family:'Geist',sans-serif;font-size:15px;line-height:1.55;color:var(--label)}
+  .essence-point .pt-body strong{font-weight:600}
+
+  /* ===== WORDMARK ===== */
+  .wordmark-block{margin-left:64px}
+  .wordmark-anatomy{display:flex;align-items:flex-end;gap:48px;padding:48px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);margin-bottom:32px}
+  .wm-big{font-family:'Geist',sans-serif;font-weight:600;font-size:88px;letter-spacing:-3px;color:var(--label);line-height:1}
+  .wm-big .period{color:var(--accent)}
+  .wm-notes{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .wm-note{display:flex;flex-direction:column;gap:4px;font-family:'Geist',sans-serif}
+  .wm-note .k{font-size:10px;font-weight:600;color:var(--tertiary);letter-spacing:0.14em;text-transform:uppercase}
+  .wm-note .v{font-size:13px;color:var(--label);font-weight:500;letter-spacing:-0.1px}
+
+  .wm-scale{display:flex;align-items:baseline;gap:32px;padding:32px 0;border-bottom:1px solid var(--rule);margin-bottom:32px}
+  .wm-scale-item{display:flex;flex-direction:column;gap:6px}
+  .wm-scale-item .v{font-family:'Geist',sans-serif;font-weight:600;color:var(--label);line-height:1}
+  .wm-scale-item .v .period{color:var(--accent)}
+  .wm-scale-item .k{font-size:10px;color:var(--tertiary);letter-spacing:0.10em;text-transform:uppercase}
+  .wm-scale-item.sz-1 .v{font-size:48px;letter-spacing:-1.6px}
+  .wm-scale-item.sz-2 .v{font-size:28px;letter-spacing:-0.8px}
+  .wm-scale-item.sz-3 .v{font-size:18px;letter-spacing:-0.4px}
+  .wm-scale-item.sz-4 .v{font-size:13px;letter-spacing:-0.1px}
+  .wm-scale-item.sz-5 .v{font-size:11px;letter-spacing:0}
+
+  .dodont{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px}
+  .dod-cell{padding:24px 18px;background:rgba(255,214,204,0.04);border:1px solid var(--rule);border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:14px;position:relative;min-height:140px;justify-content:center}
+  .dod-cell.do::before{content:"DO";position:absolute;top:10px;left:12px;font-family:'Geist',sans-serif;font-size:9px;font-weight:600;color:#7BC890;letter-spacing:0.16em}
+  .dod-cell.dont::before{content:"DON'T";position:absolute;top:10px;left:12px;font-family:'Geist',sans-serif;font-size:9px;font-weight:600;color:#E27D78;letter-spacing:0.16em}
+  .dod-cell .ex{font-family:'Geist',sans-serif;font-size:32px;font-weight:600;letter-spacing:-1px;color:var(--label)}
+  .dod-cell .ex .period{color:var(--accent)}
+  .dod-cell .lbl{font-size:11px;color:var(--tertiary);letter-spacing:0.04em;text-align:center;line-height:1.4}
+
+  /* ===== LOGO STATES ===== */
+  .logo-states{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-left:64px;margin-bottom:40px}
+  .logo-state{padding:36px;background:rgba(255,214,204,0.03);border:1px solid var(--rule);border-radius:14px;display:flex;flex-direction:column;align-items:center;gap:18px;position:relative}
+  .logo-state svg{width:140px;height:140px}
+  .logo-state .state-name{font-family:'Geist',sans-serif;font-size:13px;font-weight:600;color:var(--label);letter-spacing:-0.2px;text-transform:capitalize}
+  .logo-state .state-desc{font-size:11px;color:var(--tertiary);line-height:1.5;text-align:center;max-width:24ch}
+  .logo-state.urgent{background:rgba(255,214,204,0.06);border-color:rgba(255,214,204,0.18)}
+
+  .app-icon-block{display:grid;grid-template-columns:200px 1fr;gap:48px;align-items:center;margin-left:64px;padding:32px;background:rgba(255,214,204,0.04);border:1px solid var(--rule);border-radius:14px}
+  .app-icon{width:160px;height:160px;border-radius:36px;background:linear-gradient(160deg,#2D2520 0%,#3A2F28 60%,#42362E 100%);box-shadow:0 24px 48px -16px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,214,204,0.12)}
+  .app-icon svg{width:96px;height:96px}
+  .app-icon-meta h4{font-family:'Geist',sans-serif;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px}
+  .app-icon-meta p{font-size:14px;color:var(--secondary);line-height:1.55;max-width:48ch}
+
+  /* ===== COLOR ===== */
+  .color-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-left:64px;margin-bottom:32px}
+  .swatch{padding:24px 20px;border-radius:10px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--rule);min-height:160px;justify-content:flex-end;position:relative;overflow:hidden}
+  .swatch.s-ink{background:#2D2520}
+  .swatch.s-surface{background:#3A2F28}
+  .swatch.s-blush{background:#FFD6CC;border-color:transparent}
+  .swatch.s-secondary{background:#C7B6A8;border-color:transparent}
+  .swatch.s-tertiary{background:#A6968A;border-color:transparent}
+  .swatch .name{font-family:'Geist',sans-serif;font-size:13px;font-weight:600;letter-spacing:-0.2px}
+  .swatch .hex{font-family:'Geist',sans-serif;font-size:11px;font-variant-numeric:tabular-nums;letter-spacing:0.04em}
+  .swatch .role{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:4px;font-weight:500}
+  .swatch.s-ink .name, .swatch.s-ink .hex, .swatch.s-surface .name, .swatch.s-surface .hex{color:var(--label)}
+  .swatch.s-ink .role, .swatch.s-surface .role{color:var(--accent)}
+  .swatch.s-blush .name, .swatch.s-blush .hex, .swatch.s-blush .role, .swatch.s-secondary .name, .swatch.s-secondary .hex, .swatch.s-secondary .role, .swatch.s-tertiary .name, .swatch.s-tertiary .hex, .swatch.s-tertiary .role{color:#2D2520}
+
+  .cal-row{display:flex;gap:14px;margin-left:64px;margin-bottom:14px}
+  .cal-swatch{flex:1;padding:18px;background:rgba(255,214,204,0.03);border:1px solid var(--rule);border-radius:10px;display:flex;align-items:center;gap:12px}
+  .cal-swatch .dot{width:18px;height:18px;border-radius:50%;flex:none}
+  .cal-swatch .info{display:flex;flex-direction:column;gap:2px}
+  .cal-swatch .name{font-family:'Geist',sans-serif;font-size:13px;font-weight:500;color:var(--label)}
+  .cal-swatch .hex{font-family:'Geist',sans-serif;font-size:11px;color:var(--tertiary);font-variant-numeric:tabular-nums;letter-spacing:0.04em}
+  .color-note{margin-left:64px;font-size:13px;color:var(--secondary);max-width:60ch;line-height:1.6;margin-top:16px}
+
+  /* ===== TYPOGRAPHY ===== */
+  .type-block{margin-left:64px;display:flex;flex-direction:column;gap:24px}
+  .type-row{display:grid;grid-template-columns:160px 1fr;gap:32px;align-items:baseline;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+  .type-row:last-child{border-bottom:none}
+  .type-row .meta{font-family:'Geist',sans-serif;font-size:11px;color:var(--tertiary);letter-spacing:0.06em}
+  .type-row .meta .role{font-weight:600;color:var(--accent);letter-spacing:0.16em;text-transform:uppercase;display:block;margin-bottom:4px;font-size:10px}
+  .type-row .sample{font-family:'Geist',sans-serif;color:var(--label)}
+  .type-row.t-display .sample{font-size:48px;font-weight:600;letter-spacing:-1.6px;line-height:1.05}
+  .type-row.t-title .sample{font-size:28px;font-weight:600;letter-spacing:-0.9px;line-height:1.1}
+  .type-row.t-section .sample{font-size:18px;font-weight:600;letter-spacing:-0.4px}
+  .type-row.t-body .sample{font-size:14px;font-weight:400;line-height:1.55;color:var(--secondary);max-width:60ch}
+  .type-row.t-meta .sample{font-size:12px;font-weight:500;color:var(--tertiary);letter-spacing:0.04em}
+  .type-row.t-eyebrow .sample{font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.16em;text-transform:uppercase}
+
+  /* ===== ICONS ===== */
+  .icon-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:14px;margin-left:64px;margin-bottom:24px}
+  .icon-tile{padding:20px;background:rgba(255,214,204,0.04);border:1px solid var(--rule);border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:10px}
+  .icon-tile svg{width:28px;height:28px;color:var(--label);fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .icon-tile .name{font-family:'Geist',sans-serif;font-size:10px;color:var(--tertiary);letter-spacing:0.04em}
+  .icon-construction{margin-left:64px;font-size:13px;color:var(--secondary);max-width:60ch;line-height:1.6}
+  .icon-construction strong{color:var(--label);font-weight:500}
+
+  /* ===== UI SURFACES ===== */
+  .surface-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-left:64px}
+  .surface-card{padding:24px;background:rgba(255,214,204,0.03);border:1px solid var(--rule);border-radius:14px;display:flex;flex-direction:column;gap:14px}
+  .surface-thumb{height:160px;border-radius:10px;background:linear-gradient(135deg,#1A1612 0%,#221C18 50%,#1A1612 100%);display:flex;align-items:center;justify-content:center;border:1px solid var(--rule);position:relative;overflow:hidden}
+  .surface-thumb .mini{font-family:'Geist',sans-serif;color:var(--label);text-align:center}
+  .surface-thumb .mini-title{font-size:13px;font-weight:600;margin-bottom:4px;letter-spacing:-0.2px}
+  .surface-thumb .mini-meta{font-size:10px;color:var(--accent);letter-spacing:0.04em}
+  .surface-card h4{font-family:'Geist',sans-serif;font-size:13px;font-weight:600;color:var(--label);letter-spacing:-0.2px}
+  .surface-card p{font-size:12px;color:var(--tertiary);line-height:1.55}
+  .surface-card .link{font-family:'Geist',sans-serif;font-size:11px;font-weight:500;color:var(--accent);letter-spacing:0.04em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px}
+
+  /* ===== TONE ===== */
+  .tone-grid{margin-left:64px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .tone-card{padding:24px;background:rgba(255,214,204,0.04);border:1px solid var(--rule);border-radius:10px;display:flex;flex-direction:column;gap:14px}
+  .tone-card.do{border-left:3px solid #7BC890}
+  .tone-card.dont{border-left:3px solid #E27D78}
+  .tone-card .tag{font-family:'Geist',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.16em}
+  .tone-card.do .tag{color:#7BC890}
+  .tone-card.dont .tag{color:#E27D78}
+  .tone-card .ex{font-family:'Geist',sans-serif;font-size:15px;color:var(--label);font-weight:500;letter-spacing:-0.2px;line-height:1.45}
+  .tone-card .why{font-size:12px;color:var(--secondary);line-height:1.55}
+
+  /* ===== FOOTER ===== */
+  .colophon{padding:80px 0 80px;text-align:center;border-top:1px solid var(--rule);margin-top:80px}
+  .colophon .mark{display:inline-block;margin-bottom:18px}
+  .colophon .mark svg{width:40px;height:40px}
+  .colophon h4{font-family:'Geist',sans-serif;font-size:15px;font-weight:600;color:var(--label);margin-bottom:6px;letter-spacing:-0.2px}
+  .colophon h4 .period{color:var(--accent)}
+  .colophon .meta{font-size:11px;color:var(--tertiary);letter-spacing:0.06em}
+</style>
+</head>
+<body data-checkpoint="page">
+
+<div class="book">
+
+  <!-- ========== COVER ========== -->
+  <section class="cover" data-checkpoint="section-cover">
+    <div class="cover-top">
+      <span class="doc-tag" data-checkpoint="text">Brand book · v1.0</span>
+      <span class="doc-meta" data-checkpoint="text">2026-05-28 · Sealed</span>
+    </div>
+    <div class="cover-mid">
+      <svg class="cover-mark" viewBox="0 0 200 200" data-checkpoint="cover-mark">
+        <circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.06"/>
+        <circle cx="100" cy="40" r="14" fill="#FFD6CC"/>
+        <circle cx="160" cy="100" r="14" fill="#FFD6CC"/>
+        <circle cx="100" cy="160" r="14" fill="#FFD6CC"/>
+        <circle cx="40" cy="100" r="14" fill="#FFD6CC"/>
+        <circle cx="100" cy="100" r="14" fill="#FFD6CC"/>
+      </svg>
+      <h1 class="cover-title" data-checkpoint="text">Nudgebar<span class="period">.</span></h1>
+    </div>
+    <div class="cover-bottom">
+      <p class="cover-sub" data-checkpoint="text">Meeting nudges · macOS</p>
+      <div class="toc">
+        <div data-checkpoint="text">01 · Brand essence</div>
+        <div data-checkpoint="text">02 · Wordmark</div>
+        <div data-checkpoint="text">03 · Logo system</div>
+        <div data-checkpoint="text">04 · Color</div>
+        <div data-checkpoint="text">05 · Typography</div>
+        <div data-checkpoint="text">06 · Iconography</div>
+        <div data-checkpoint="text">07 · UI surfaces</div>
+        <div data-checkpoint="text">08 · Tone</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== BRAND ESSENCE ========== -->
+  <section class="section" data-checkpoint="section-essence">
+    <div class="section-head">
+      <span class="section-num" data-checkpoint="text">01</span>
+      <h2 class="section-title" data-checkpoint="text">Brand essence</h2>
+    </div>
+    <p class="lead" data-checkpoint="text">Nudgebar puts your next meeting in your menu bar and nudges you before you miss it. Quiet by default, loud only when it matters.</p>
+
+    <div class="essence-grid">
+      <svg class="essence-mark" viewBox="0 0 200 200" data-checkpoint="essence-mark">
+        <circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.06"/>
+        <circle cx="100" cy="100" r="46" fill="#FFD6CC" opacity="0.10"/>
+        <circle cx="100" cy="100" r="34" fill="#FFD6CC" opacity="0.20"/>
+        <circle cx="100" cy="40" r="14" fill="#FFD6CC"/>
+        <circle cx="160" cy="100" r="14" fill="#FFD6CC"/>
+        <circle cx="100" cy="160" r="14" fill="#FFD6CC"/>
+        <circle cx="40" cy="100" r="14" fill="#FFD6CC"/>
+        <circle cx="100" cy="100" r="22" fill="#FFD6CC"/>
+      </svg>
+      <div class="essence-points">
+        <div class="essence-point">
+          <span class="pt-num" data-checkpoint="text">→ Bedrock</span>
+          <p class="pt-body" data-checkpoint="text"><strong>Four corner dots</strong> form the structural identity. Every state — idle, active, urgent — preserves the four anchor points and changes the center.</p>
+        </div>
+        <div class="essence-point">
+          <span class="pt-num" data-checkpoint="text">→ Calm</span>
+          <p class="pt-body" data-checkpoint="text"><strong>Quiet by default.</strong> The menu bar shows a soft bell, the popover sleeps. Loudness is reserved for fired alerts — every other surface stays restrained.</p>
+        </div>
+        <div class="essence-point">
+          <span class="pt-num" data-checkpoint="text">→ Honest</span>
+          <p class="pt-body" data-checkpoint="text"><strong>Plain spoken, terse.</strong> "Coffee with Daniel · in 5 min" rather than "🍵 Reminder: Coffee Meeting in 5 Minutes!"</p>
+        </div>
+        <div class="essence-point">
+          <span class="pt-num" data-checkpoint="text">→ Native</span>
+          <p class="pt-body" data-checkpoint="text"><strong>Sits inside macOS, not on top of it.</strong> Real status item height, real vibrancy, real NSPopover behavior. Brand expresses through palette and typography; chrome stays macOS.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== WORDMARK ========== -->
+  <section class="section" data-checkpoint="section-wordmark">
+    <div class="section-head">
+      <span class="section-num" data-checkpoint="text">02</span>
+      <h2 class="section-title" data-checkpoint="text">Wordmark</h2>
+    </div>
+    <p class="lead" data-checkpoint="text">Geist 600, mixed case, tight tracking, accent-coloured terminal period. The period is the brand's single typographic distinction — never recoloured, never removed.</p>
+
+    <div class="wordmark-block">
+      <div class="wordmark-anatomy" data-checkpoint="wm-anatomy">
+        <div class="wm-big" data-checkpoint="text">Nudgebar<span class="period">.</span></div>
+        <div class="wm-notes">
+          <div class="wm-note">
+            <span class="k" data-checkpoint="text">Family</span>
+            <span class="v" data-checkpoint="text">Geist</span>
+          </div>
+          <div class="wm-note">
+            <span class="k" data-checkpoint="text">Weight</span>
+            <span class="v" data-checkpoint="text">600 · Semibold</span>
+          </div>
+          <div class="wm-note">
+            <span class="k" data-checkpoint="text">Tracking</span>
+            <span class="v" data-checkpoint="text">−3% at display sizes</span>
+          </div>
+          <div class="wm-note">
+            <span class="k" data-checkpoint="text">Case</span>
+            <span class="v" data-checkpoint="text">Mixed · capital A only</span>
+          </div>
+          <div class="wm-note">
+            <span class="k" data-checkpoint="text">Period</span>
+            <span class="v" data-checkpoint="text">Always blush #FFD6CC</span>
+          </div>
+          <div class="wm-note">
+            <span class="k" data-checkpoint="text">Clearspace</span>
+            <span class="v" data-checkpoint="text">0.5 × cap-height on all sides</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="wm-scale" data-checkpoint="wm-scale">
+        <div class="wm-scale-item sz-1"><span class="v" data-checkpoint="text">Nudgebar<span class="period">.</span></span><span class="k" data-checkpoint="text">48 px · Brand book cover</span></div>
+        <div class="wm-scale-item sz-2"><span class="v" data-checkpoint="text">Nudgebar<span class="period">.</span></span><span class="k" data-checkpoint="text">28 px · Window title</span></div>
+        <div class="wm-scale-item sz-3"><span class="v" data-checkpoint="text">Nudgebar<span class="period">.</span></span><span class="k" data-checkpoint="text">18 px · Popover head</span></div>
+        <div class="wm-scale-item sz-4"><span class="v" data-checkpoint="text">Nudgebar<span class="period">.</span></span><span class="k" data-checkpoint="text">13 px · Sidebar foot</span></div>
+        <div class="wm-scale-item sz-5"><span class="v" data-checkpoint="text">Nudgebar<span class="period">.</span></span><span class="k" data-checkpoint="text">11 px · Min size</span></div>
+      </div>
+
+      <div class="dodont" data-checkpoint="dodont">
+        <div class="dod-cell do">
+          <div class="ex" data-checkpoint="text">Nudgebar<span class="period">.</span></div>
+          <div class="lbl" data-checkpoint="text">Mixed case · blush period</div>
+        </div>
+        <div class="dod-cell dont">
+          <div class="ex" style="text-transform:uppercase" data-checkpoint="text">NUDGEBAR.</div>
+          <div class="lbl" data-checkpoint="text">Don't ALL CAPS or stylise the case</div>
+        </div>
+        <div class="dod-cell dont">
+          <div class="ex" data-checkpoint="text">Nudgebar</div>
+          <div class="lbl" data-checkpoint="text">Don't drop the period — it's the mark</div>
+        </div>
+        <div class="dod-cell dont">
+          <div class="ex" style="font-style:italic" data-checkpoint="text">Nudgebar<span class="period">.</span></div>
+          <div class="lbl" data-checkpoint="text">Don't italicise or restyle the type</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== LOGO SYSTEM ========== -->
+  <section class="section" data-checkpoint="section-logo">
+    <div class="section-head">
+      <span class="section-num" data-checkpoint="text">03</span>
+      <h2 class="section-title" data-checkpoint="text">Logo system · Bold States Ring</h2>
+    </div>
+    <p class="lead" data-checkpoint="text">Three states reflect what Nudgebar is doing right now. The four corner dots persist as structural anchors; the center and halos change. This is the only mark that earns brand recognition at favicon size.</p>
+
+    <div class="logo-states" data-checkpoint="logo-states">
+      <div class="logo-state idle" data-checkpoint="logo-state-idle">
+        <svg viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.04"/>
+          <circle cx="100" cy="40" r="14" fill="#FFD6CC"/>
+          <circle cx="160" cy="100" r="14" fill="#FFD6CC"/>
+          <circle cx="100" cy="160" r="14" fill="#FFD6CC"/>
+          <circle cx="40" cy="100" r="14" fill="#FFD6CC"/>
+        </svg>
+        <div class="state-name" data-checkpoint="text">Idle</div>
+        <div class="state-desc" data-checkpoint="text">No event imminent. Four anchors only. Status item is quiet, popover sleeping.</div>
+      </div>
+      <div class="logo-state active" data-checkpoint="logo-state-active">
+        <svg viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.06"/>
+          <circle cx="100" cy="40" r="14" fill="#FFD6CC"/>
+          <circle cx="160" cy="100" r="14" fill="#FFD6CC"/>
+          <circle cx="100" cy="160" r="14" fill="#FFD6CC"/>
+          <circle cx="40" cy="100" r="14" fill="#FFD6CC"/>
+          <circle cx="100" cy="100" r="14" fill="#FFD6CC"/>
+        </svg>
+        <div class="state-name" data-checkpoint="text">Active</div>
+        <div class="state-desc" data-checkpoint="text">Events tracked. The center dot lights up. Menu bar shows the next title + countdown.</div>
+      </div>
+      <div class="logo-state urgent" data-checkpoint="logo-state-urgent">
+        <svg viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.06"/>
+          <circle cx="100" cy="100" r="46" fill="#FFD6CC" opacity="0.10"/>
+          <circle cx="100" cy="100" r="34" fill="#FFD6CC" opacity="0.20"/>
+          <circle cx="100" cy="40" r="14" fill="#FFD6CC"/>
+          <circle cx="160" cy="100" r="14" fill="#FFD6CC"/>
+          <circle cx="100" cy="160" r="14" fill="#FFD6CC"/>
+          <circle cx="40" cy="100" r="14" fill="#FFD6CC"/>
+          <circle cx="100" cy="100" r="22" fill="#FFD6CC"/>
+        </svg>
+        <div class="state-name" data-checkpoint="text">Urgent</div>
+        <div class="state-desc" data-checkpoint="text">Alert window is up. Cardinals hold the structure; the center swells and gains two halos. The brand stays anchored — only the alert grows.</div>
+      </div>
+    </div>
+
+    <div class="app-icon-block" data-checkpoint="app-icon-block">
+      <div class="app-icon" data-checkpoint="app-icon">
+        <svg viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.06"/>
+          <circle cx="100" cy="100" r="46" fill="#FFD6CC" opacity="0.10"/>
+          <circle cx="100" cy="100" r="34" fill="#FFD6CC" opacity="0.20"/>
+          <circle cx="100" cy="40" r="14" fill="#FFD6CC"/>
+          <circle cx="160" cy="100" r="14" fill="#FFD6CC"/>
+          <circle cx="100" cy="160" r="14" fill="#FFD6CC"/>
+          <circle cx="40" cy="100" r="14" fill="#FFD6CC"/>
+          <circle cx="100" cy="100" r="22" fill="#FFD6CC"/>
+        </svg>
+      </div>
+      <div class="app-icon-meta">
+        <h4 data-checkpoint="text">App icon · Urgent state</h4>
+        <p data-checkpoint="text">macOS app icon uses the Urgent state because Launchpad / Dock thumbnails appear when the user is choosing to engage. Rendered in a macOS rounded square (36 px corner radius at 160 px) with a brand-ink gradient ground.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== COLOR ========== -->
+  <section class="section" data-checkpoint="section-color">
+    <div class="section-head">
+      <span class="section-num" data-checkpoint="text">04</span>
+      <h2 class="section-title" data-checkpoint="text">Color</h2>
+    </div>
+    <p class="lead" data-checkpoint="text">Two-tone bedrock: warm ink and blush. Secondary and tertiary text tones are warm-shifted greys so the whole palette stays within a single color temperature. Calendar accents are reserved for user-data signaling only.</p>
+
+    <div class="color-grid" data-checkpoint="color-grid">
+      <div class="swatch s-ink"><span class="role" data-checkpoint="text">Background</span><span class="name" data-checkpoint="text">Ink</span><span class="hex" data-checkpoint="text">#2D2520</span></div>
+      <div class="swatch s-surface"><span class="role" data-checkpoint="text">Surface</span><span class="name" data-checkpoint="text">Ember</span><span class="hex" data-checkpoint="text">#3A2F28</span></div>
+      <div class="swatch s-blush"><span class="role" data-checkpoint="text">Label · Accent</span><span class="name" data-checkpoint="text">Blush</span><span class="hex" data-checkpoint="text">#FFD6CC</span></div>
+      <div class="swatch s-secondary"><span class="role" data-checkpoint="text">Secondary</span><span class="name" data-checkpoint="text">Sand</span><span class="hex" data-checkpoint="text">#C7B6A8</span></div>
+      <div class="swatch s-tertiary"><span class="role" data-checkpoint="text">Tertiary</span><span class="name" data-checkpoint="text">Stone</span><span class="hex" data-checkpoint="text">#A6968A</span></div>
+    </div>
+
+    <h4 style="margin-left:64px;margin-bottom:14px;font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.14em;text-transform:uppercase" data-checkpoint="text">Calendar accent palette</h4>
+    <div class="cal-row" data-checkpoint="cal-row">
+      <div class="cal-swatch"><span class="dot" style="background:#6BA3E6"></span><div class="info"><span class="name" data-checkpoint="text">Work · Blue</span><span class="hex" data-checkpoint="text">#6BA3E6</span></div></div>
+      <div class="cal-swatch"><span class="dot" style="background:#C485D6"></span><div class="info"><span class="name" data-checkpoint="text">Design · Purple</span><span class="hex" data-checkpoint="text">#C485D6</span></div></div>
+      <div class="cal-swatch"><span class="dot" style="background:#E29F45"></span><div class="info"><span class="name" data-checkpoint="text">Personal · Amber</span><span class="hex" data-checkpoint="text">#E29F45</span></div></div>
+      <div class="cal-swatch"><span class="dot" style="background:#7BC890"></span><div class="info"><span class="name" data-checkpoint="text">Health · Green</span><span class="hex" data-checkpoint="text">#7BC890</span></div></div>
+      <div class="cal-swatch"><span class="dot" style="background:#E27D78"></span><div class="info"><span class="name" data-checkpoint="text">Family · Coral</span><span class="hex" data-checkpoint="text">#E27D78</span></div></div>
+    </div>
+    <p class="color-note" data-checkpoint="text">Calendar colors are mapped from the user's calendar source (EventKit color, Google backgroundColor, MS Graph enum). The brand never originates these — only the brand bedrock and blush are designer-controlled. Brand never originates these — only the brand bedrock and blush are designer-controlled.</p>
+  </section>
+
+  <!-- ========== TYPOGRAPHY ========== -->
+  <section class="section" data-checkpoint="section-type">
+    <div class="section-head">
+      <span class="section-num" data-checkpoint="text">05</span>
+      <h2 class="section-title" data-checkpoint="text">Typography</h2>
+    </div>
+    <p class="lead" data-checkpoint="text">Single family: Geist. Five sizes total across the system. Strict scale. Body type uses Sand for relaxed reading; emphasis steps up to Blush.</p>
+
+    <div class="type-block" data-checkpoint="type-block">
+      <div class="type-row t-display">
+        <div class="meta"><span class="role" data-checkpoint="text">Display</span><span data-checkpoint="text">48 / 600 / −1.6 / 1.05</span></div>
+        <div class="sample" data-checkpoint="text">Quarterly Review</div>
+      </div>
+      <div class="type-row t-title">
+        <div class="meta"><span class="role" data-checkpoint="text">Title</span><span data-checkpoint="text">28 / 600 / −0.9 / 1.1</span></div>
+        <div class="sample" data-checkpoint="text">3 events starting soon</div>
+      </div>
+      <div class="type-row t-section">
+        <div class="meta"><span class="role" data-checkpoint="text">Section</span><span data-checkpoint="text">18 / 600 / −0.4 / 1.3</span></div>
+        <div class="sample" data-checkpoint="text">Sync with Sarah · 1:1</div>
+      </div>
+      <div class="type-row t-body">
+        <div class="meta"><span class="role" data-checkpoint="text">Body</span><span data-checkpoint="text">14 / 400 / 0 / 1.55</span></div>
+        <div class="sample" data-checkpoint="text">Auto-dismiss after 30 seconds, ranging 5 – 300, or set to Never. The countdown ring on each alert reflects this.</div>
+      </div>
+      <div class="type-row t-meta">
+        <div class="meta"><span class="role" data-checkpoint="text">Meta</span><span data-checkpoint="text">12 / 500 / 0.04 / 1.5</span></div>
+        <div class="sample" data-checkpoint="text">10:00 AM · 1h · with Sarah Chen · Zoom</div>
+      </div>
+      <div class="type-row t-eyebrow">
+        <div class="meta"><span class="role" data-checkpoint="text">Eyebrow</span><span data-checkpoint="text">11 / 600 / 0.16 / uppercase</span></div>
+        <div class="sample" data-checkpoint="text">Today · Wed · Oct 23</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== ICONOGRAPHY ========== -->
+  <section class="section" data-checkpoint="section-icons">
+    <div class="section-head">
+      <span class="section-num" data-checkpoint="text">06</span>
+      <h2 class="section-title" data-checkpoint="text">Iconography</h2>
+    </div>
+    <p class="lead" data-checkpoint="text">Outlined hairline · 24 px viewBox · 1.6 px stroke · rounded caps and joins. Sits comfortably next to SF Symbols. Eight icons cover every surface in the app.</p>
+
+    <div class="icon-grid" data-checkpoint="icon-grid">
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><line x1="3" y1="9" x2="21" y2="9"/></svg><span class="name" data-checkpoint="text">Calendar</span></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="name" data-checkpoint="text">Bell</span></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/><path d="M10 10h4l-4 4h4"/></svg><span class="name" data-checkpoint="text">Snooze</span></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18" stroke-width="1.8"/><line x1="18" y1="6" x2="6" y2="18" stroke-width="1.8"/></svg><span class="name" data-checkpoint="text">Dismiss</span></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span class="name" data-checkpoint="text">Settings</span></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><line x1="10" y1="2" x2="14" y2="2"/><circle cx="12" cy="13" r="8"/><line x1="12" y1="13" x2="12" y2="9"/><line x1="12" y1="13" x2="15" y2="13"/></svg><span class="name" data-checkpoint="text">Lead time</span></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg><span class="name" data-checkpoint="text">Sound</span></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg><span class="name" data-checkpoint="text">Join · video</span></div>
+    </div>
+
+    <p class="icon-construction" data-checkpoint="text"><strong>Construction:</strong> 24 × 24 viewBox · 1.6 px stroke (1.8 for Dismiss) · rounded caps and joins · single weight (no thick-and-thin) · negative space minimum 2 px between strokes at 16 px render. All icons re-stroke cleanly at 16 / 20 / 24 / 32 px without redrawing.</p>
+  </section>
+
+  <!-- ========== UI SURFACES ========== -->
+  <section class="section" data-checkpoint="section-surfaces">
+    <div class="section-head">
+      <span class="section-num" data-checkpoint="text">07</span>
+      <h2 class="section-title" data-checkpoint="text">UI surfaces</h2>
+    </div>
+    <p class="lead" data-checkpoint="text">Three primary surfaces. Each lives in its own showcase with the full design rationale and progression. Locked patterns documented here as reference.</p>
+
+    <div class="surface-grid" data-checkpoint="surface-grid">
+      <div class="surface-card" data-checkpoint="surf-alert">
+        <div class="surface-thumb">
+          <div class="mini">
+            <div class="mini-title" data-checkpoint="text">Quarterly Review</div>
+            <div class="mini-meta" data-checkpoint="text">10:00 AM · in 5 min</div>
+          </div>
+        </div>
+        <h4 data-checkpoint="text">Full-screen alert</h4>
+        <p data-checkpoint="text">Translucent backdrop, opaque card with glowing border. Single event hero with Join button when video; merged unified block for concurrent events with shared Snooze All / Dismiss All.</p>
+        <span class="link" data-checkpoint="text">Figma · node-id 57-2</span>
+      </div>
+      <div class="surface-card" data-checkpoint="surf-popover">
+        <div class="surface-thumb">
+          <div class="mini">
+            <div class="mini-title" data-checkpoint="text">Next 2 · 5 total</div>
+            <div class="mini-meta" data-checkpoint="text">Hero pair + timeline</div>
+          </div>
+        </div>
+        <h4 data-checkpoint="text">Menu-bar popover</h4>
+        <p data-checkpoint="text">Hybrid B2+D1 · two heroes for imminent events with Join, compressed timeline below for the rest of today through tomorrow, quiet hours folded.</p>
+        <span class="link" data-checkpoint="text">Figma · node-id 63-2</span>
+      </div>
+      <div class="surface-card" data-checkpoint="surf-settings">
+        <div class="surface-thumb">
+          <div class="mini">
+            <div class="mini-title" data-checkpoint="text">Connectors · 1 / 7</div>
+            <div class="mini-meta" data-checkpoint="text">macOS · Google · MS · CalDAV …</div>
+          </div>
+        </div>
+        <h4 data-checkpoint="text">Settings window</h4>
+        <p data-checkpoint="text">840 × 540 macOS-native window with 210 px sidebar. Five sections: General, Calendars, Connectors (7-provider catalog), Alerts, About.</p>
+        <span class="link" data-checkpoint="text">Figma · node-id 64-2</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TONE ========== -->
+  <section class="section" data-checkpoint="section-tone">
+    <div class="section-head">
+      <span class="section-num" data-checkpoint="text">08</span>
+      <h2 class="section-title" data-checkpoint="text">Tone of voice</h2>
+    </div>
+    <p class="lead" data-checkpoint="text">Plain, terse, kind. Nudgebar speaks the way a useful colleague would: short sentences, relevant facts, no flourish. Never demands; never apologizes for showing up.</p>
+
+    <div class="tone-grid" data-checkpoint="tone-grid">
+      <div class="tone-card do" data-checkpoint="tone-do-1">
+        <span class="tag" data-checkpoint="text">DO</span>
+        <div class="ex" data-checkpoint="text">"Coffee with Daniel · in 5 min"</div>
+        <p class="why" data-checkpoint="text">Title + relative time. The user reads "what" and "when" in under a second. No verbs, no padding.</p>
+      </div>
+      <div class="tone-card dont" data-checkpoint="tone-dont-1">
+        <span class="tag" data-checkpoint="text">DON'T</span>
+        <div class="ex" data-checkpoint="text">"🍵 Reminder: Your Coffee Meeting Starts in 5 Minutes!"</div>
+        <p class="why" data-checkpoint="text">Emoji adds noise. "Reminder:" is redundant — the alert is the reminder. Title case and exclamation feel theatrical.</p>
+      </div>
+      <div class="tone-card do" data-checkpoint="tone-do-2">
+        <span class="tag" data-checkpoint="text">DO</span>
+        <div class="ex" data-checkpoint="text">"All clear"</div>
+        <p class="why" data-checkpoint="text">Empty states are calm and complete. Two words, one declaration. The user can move on.</p>
+      </div>
+      <div class="tone-card dont" data-checkpoint="tone-dont-2">
+        <span class="tag" data-checkpoint="text">DON'T</span>
+        <div class="ex" data-checkpoint="text">"You have no upcoming events at this time."</div>
+        <p class="why" data-checkpoint="text">Bureaucratic. Mentions the user, mentions time, mentions absence. Three negatives where one positive will do.</p>
+      </div>
+      <div class="tone-card do" data-checkpoint="tone-do-3">
+        <span class="tag" data-checkpoint="text">DO</span>
+        <div class="ex" data-checkpoint="text">"3 events starting soon"</div>
+        <p class="why" data-checkpoint="text">Headline structure: count, subject, when. Honest about scale without dressing it up.</p>
+      </div>
+      <div class="tone-card dont" data-checkpoint="tone-dont-3">
+        <span class="tag" data-checkpoint="text">DON'T</span>
+        <div class="ex" data-checkpoint="text">"📅 Multiple Events Are About To Start! 🚨"</div>
+        <p class="why" data-checkpoint="text">Alarm-clock pretending to be friendly. Capital letters and emoji can't make the same point as accurate plain text.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== COLOPHON ========== -->
+  <footer class="colophon" data-checkpoint="colophon">
+    <span class="mark">
+      <svg viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.06"/>
+        <circle cx="100" cy="40" r="14" fill="#FFD6CC"/>
+        <circle cx="160" cy="100" r="14" fill="#FFD6CC"/>
+        <circle cx="100" cy="160" r="14" fill="#FFD6CC"/>
+        <circle cx="40" cy="100" r="14" fill="#FFD6CC"/>
+        <circle cx="100" cy="100" r="14" fill="#FFD6CC"/>
+      </svg>
+    </span>
+    <h4 data-checkpoint="text">Nudgebar<span class="period">.</span> Brand book v1.0</h4>
+    <p class="meta" data-checkpoint="text">nudgebar.io · Sealed 2026-05-28 · Set in Geist · Ink #2D2520 · Blush #FFD6CC</p>
+  </footer>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nudgebar — Full-screen alert design</title>
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1F1A17;
+    --surface:#2A231F;
+    --label:#FFD6CC;
+    --secondary:#B8A89A;
+    --tertiary:#A6968A;
+    --accent:#FFD6CC;
+    --rule:rgba(255,214,204,0.10);
+    --rule-strong:rgba(255,214,204,0.20);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--label);font-family:'Geist','Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.4}
+
+  /* Page layout */
+  .page{max-width:1440px;margin:0 auto;padding:64px 32px 96px}
+  .doc-header{padding-bottom:32px;border-bottom:1px solid var(--rule);margin-bottom:48px;display:flex;justify-content:space-between;align-items:baseline}
+  .doc-header .crumb{font-size:11px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--secondary)}
+  .doc-header h1{font-size:36px;line-height:1.1;font-weight:600;letter-spacing:-0.02em;margin:8px 0 0;color:var(--label)}
+  .doc-header .meta{font-size:12px;color:var(--tertiary);letter-spacing:0.04em}
+
+  /* Scenario section */
+  .scenario{margin-bottom:80px}
+  .scenario-head{display:flex;align-items:baseline;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--rule);margin-bottom:24px}
+  .scenario-head .num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--surface);font-size:13px;font-weight:600;color:var(--label);margin-right:14px}
+  .scenario-head h2{font-size:22px;font-weight:600;letter-spacing:-0.01em;margin:0;color:var(--label);display:flex;align-items:center;flex:1}
+  .scenario-head .tag{font-size:11px;font-weight:500;color:var(--tertiary);letter-spacing:0.08em;text-transform:uppercase}
+
+  /* Alert stage — translucent feel with glowing border (not a modal) */
+  .stage{background:linear-gradient(135deg,#1A1612 0%,#221C18 50%,#1A1612 100%);border-radius:14px;overflow:hidden;position:relative;aspect-ratio:16/10;min-height:840px;box-shadow:inset 0 0 220px 0 rgba(255,214,204,0.32), inset 0 0 60px 0 rgba(255,214,204,0.18), inset 0 0 0 2px rgba(255,214,204,0.32)}
+  .stage::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 50%, transparent 30%, rgba(255,214,204,0.06) 80%, rgba(255,214,204,0.14) 100%);pointer-events:none}
+  .stage::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 80% 70% at 50% 50%, rgba(255,214,204,0.08) 0%, transparent 50%);pointer-events:none;mix-blend-mode:screen}
+  .stage-inner{position:relative;padding:80px 96px;height:100%;display:flex;flex-direction:column}
+
+  /* Window chrome — corner anchors */
+  .corner-logo{position:absolute;top:48px;left:64px;display:flex;align-items:center;gap:16px;z-index:2}
+  .corner-logo svg{width:44px;height:44px}
+  .corner-logo .wordmark{font-family:'Geist',system-ui,sans-serif;font-size:22px;font-weight:600;letter-spacing:-0.6px;color:var(--label)}
+  .corner-logo .wordmark .period{color:var(--accent)}
+  .corner-meta{position:absolute;top:56px;right:64px;display:flex;align-items:center;gap:14px;font-family:'Geist',system-ui,sans-serif;font-size:12px;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:var(--tertiary);z-index:2}
+
+  /* Card stack — main content area */
+  .card-stack{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px 24px;gap:18px;width:100%}
+
+  /* Single alert card — opaque, with elevation and a subtle blush glow halo */
+  .alert-card{width:100%;max-width:1100px;background:var(--surface);border-radius:20px;padding:64px 72px;border:1px solid rgba(255,214,204,0.12);position:relative;box-shadow:0 1px 0 rgba(255,255,255,0.05) inset, 0 32px 80px -32px rgba(0,0,0,0.8), 0 0 80px -20px rgba(255,214,204,0.22)}
+  .alert-card.compact{padding:36px 56px;max-width:1100px}
+
+  .alert-header{display:flex;align-items:flex-start;gap:36px;margin-bottom:28px}
+  .alert-title-block{flex:1;min-width:0}
+  .alert-title{font-family:'Geist',system-ui,sans-serif;font-weight:600;font-size:56px;line-height:1.05;letter-spacing:-2px;color:var(--label);margin:0 0 18px}
+  .alert-card.compact .alert-title{font-size:32px;letter-spacing:-0.9px;margin-bottom:10px}
+
+  .alert-meta{display:flex;align-items:center;gap:18px;font-family:'Geist',system-ui,sans-serif;font-size:18px;color:var(--secondary);flex-wrap:wrap}
+  .alert-card.compact .alert-meta{font-size:15px;gap:12px}
+  .alert-meta .sep{color:var(--tertiary)}
+  .alert-meta .time{color:var(--accent);font-weight:500}
+  .alert-meta .meta-item{display:inline-flex;align-items:center;gap:8px}
+  .alert-meta svg{width:18px;height:18px;opacity:0.6}
+  .alert-card.compact .alert-meta svg{width:14px;height:14px}
+
+  /* Countdown ring */
+  .countdown-ring{position:relative;width:96px;height:96px;flex:none}
+  .alert-card.compact .countdown-ring{width:64px;height:64px}
+  .countdown-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .countdown-ring .track{stroke:rgba(255,214,204,0.14);fill:none}
+  .countdown-ring .progress{stroke:var(--accent);fill:none;stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+  .countdown-ring .center-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Geist',system-ui,sans-serif;font-size:18px;font-weight:500;color:var(--label);font-variant-numeric:tabular-nums}
+  .alert-card.compact .countdown-ring .center-text{font-size:14px}
+
+  /* Buttons */
+  .alert-actions{display:flex;align-items:center;justify-content:center;gap:14px;padding-top:36px;border-top:1px solid var(--rule);margin-top:12px}
+  .btn{display:inline-flex;align-items:center;gap:10px;padding:18px 36px;border-radius:12px;font-family:'Geist',system-ui,sans-serif;font-size:17px;font-weight:600;letter-spacing:-0.005em;cursor:pointer;border:1px solid transparent;transition:background 120ms ease}
+  .alert-card.compact .alert-actions{padding-top:20px;justify-content:flex-end;gap:10px}
+  .alert-card.compact .btn{padding:10px 20px;font-size:13px;font-weight:500;border-radius:10px}
+  .btn-ghost{background:transparent;color:var(--secondary);border-color:var(--rule)}
+  .btn-ghost:hover{background:rgba(255,214,204,0.06);color:var(--label)}
+  .btn-primary{background:var(--accent);color:#1F1A17;font-weight:600}
+  .btn-primary:hover{background:#FFC8B9}
+  .btn .caret{width:10px;height:10px;opacity:0.6}
+
+  /* Snooze dropdown */
+  .snooze-wrap{position:relative;display:inline-flex}
+  .snooze-menu{position:absolute;top:calc(100% + 8px);right:0;background:#322822;border-radius:10px;border:1px solid var(--rule-strong);padding:6px;min-width:200px;box-shadow:0 12px 40px -8px rgba(0,0,0,0.6);z-index:3}
+  .snooze-menu .menu-head{font-size:10px;font-weight:600;color:var(--tertiary);letter-spacing:0.12em;text-transform:uppercase;padding:8px 12px 6px}
+  .snooze-menu .menu-item{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:6px;font-size:13px;font-weight:500;color:var(--label);cursor:pointer}
+  .snooze-menu .menu-item:hover, .snooze-menu .menu-item.focused{background:rgba(255,214,204,0.10)}
+  .snooze-menu .menu-item .key{font-size:11px;color:var(--tertiary);font-variant-numeric:tabular-nums}
+  .snooze-menu .menu-divider{height:1px;background:var(--rule);margin:4px 8px}
+
+  /* Footer */
+  .stage-footer{display:flex;align-items:center;justify-content:center;gap:18px;padding:18px;border-top:1px solid var(--rule);background:rgba(0,0,0,0.16);position:relative;z-index:2}
+  .stage-footer .auto-dismiss{font-family:'Geist',system-ui,sans-serif;font-size:12px;color:var(--tertiary);letter-spacing:0.04em;display:inline-flex;align-items:center;gap:8px}
+  .stage-footer .auto-dismiss .ad-time{color:var(--accent);font-weight:500;font-variant-numeric:tabular-nums}
+
+  /* Calendar color bar (left edge of card) */
+  .alert-card{padding-left:84px}
+  .alert-card::before{content:"";position:absolute;left:20px;top:24px;bottom:24px;width:4px;border-radius:2px;background:var(--cal-color, #FFD6CC);box-shadow:0 0 18px -4px var(--cal-color, #FFD6CC)}
+  .alert-card.compact{padding-left:60px}
+  .alert-card.compact::before{left:16px;top:16px;bottom:16px;width:3px}
+
+  /* Sub-meta row (calendar name + conference/location) */
+  .alert-submeta{display:flex;align-items:center;gap:16px;font-family:'Geist',system-ui,sans-serif;font-size:14px;color:var(--tertiary);margin-top:10px;flex-wrap:wrap}
+  .alert-submeta .meta-item{display:inline-flex;align-items:center;gap:7px}
+  .alert-submeta svg{width:14px;height:14px;opacity:0.7;flex:none}
+  .alert-submeta .cal-chip{display:inline-flex;align-items:center;gap:7px;padding:3px 10px;border-radius:999px;background:var(--cal-color-bg, rgba(255,214,204,0.10));color:var(--cal-color-fg, var(--label));font-size:12px;font-weight:500;letter-spacing:0.02em}
+  .alert-submeta .cal-chip .swatch{width:8px;height:8px;border-radius:50%;background:var(--cal-color, #FFD6CC)}
+  .alert-submeta .conf-chip{display:inline-flex;align-items:center;gap:7px;padding:3px 10px;border-radius:999px;background:rgba(46,148,213,0.14);color:#9CC8E8;font-size:12px;font-weight:500;letter-spacing:0.02em}
+  .alert-submeta .conf-chip.zoom{background:rgba(46,148,213,0.14);color:#9CC8E8}
+  .alert-submeta .conf-chip.meet{background:rgba(78,196,123,0.14);color:#9DDDB1}
+  .alert-submeta .conf-chip.teams{background:rgba(108,113,196,0.18);color:#B5B9E0}
+
+  /* Join button (primary CTA when there's a meeting link) */
+  .btn-join{background:var(--accent);color:#1F1A17;font-weight:600;display:inline-flex;align-items:center;gap:8px}
+  .btn-join:hover{background:#FFC8B9}
+  .btn-join svg{width:14px;height:14px}
+
+  /* Actions row variants when 3 buttons */
+  .alert-actions.split{justify-content:space-between}
+  .alert-actions.split .actions-left{display:flex;align-items:center;gap:10px}
+  .alert-actions.split .actions-right{display:flex;align-items:center;gap:10px}
+
+  /* Two-card stack for scenario 1 */
+  .card-stack.gap-md{gap:24px}
+
+  /* Variant label above each card */
+  .variant-label{font-family:'Geist',system-ui,sans-serif;font-size:11px;font-weight:500;color:var(--tertiary);letter-spacing:0.16em;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:4px}
+  .variant-label .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+  /* Unified multi-event list */
+  .event-list{display:flex;flex-direction:column;border-top:1px solid var(--rule);margin-top:8px}
+  .event-row{display:flex;align-items:center;gap:20px;padding:22px 4px;border-bottom:1px solid var(--rule)}
+  .event-row:last-child{border-bottom:none}
+  .event-cal-dot{width:10px;height:10px;border-radius:50%;background:var(--cal-color, #FFD6CC);flex:none;box-shadow:0 0 10px -2px var(--cal-color, #FFD6CC)}
+  .event-time{font-family:'Geist',system-ui,sans-serif;font-size:18px;font-weight:500;color:var(--accent);font-variant-numeric:tabular-nums;width:90px;flex:none}
+  .event-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+  .event-title{font-family:'Geist',system-ui,sans-serif;font-size:22px;font-weight:600;color:var(--label);letter-spacing:-0.4px;line-height:1.2}
+  .event-loc{font-family:'Geist',system-ui,sans-serif;font-size:14px;color:var(--secondary);display:flex;align-items:center;flex-wrap:wrap;gap:0}
+  .event-loc .sep{color:var(--tertiary);margin:0 8px}
+  .event-loc .lead{color:var(--accent);font-weight:500}
+  .event-loc .organizer{color:var(--secondary)}
+  .event-loc .loc-text{color:var(--secondary)}
+  .btn-join-row{padding:8px 14px 8px 12px;border-radius:8px;font-family:'Geist',system-ui,sans-serif;font-size:13px;font-weight:500;background:rgba(255,214,204,0.10);color:var(--accent);border:1px solid rgba(255,214,204,0.22);display:inline-flex;align-items:center;gap:6px;flex:none;cursor:pointer;transition:background 120ms;letter-spacing:-0.005em}
+  .btn-join-row:hover{background:rgba(255,214,204,0.20);color:var(--label)}
+  .btn-join-row svg{width:13px;height:13px}
+  .event-count-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(255,214,204,0.10);border:1px solid rgba(255,214,204,0.18);font-family:'Geist',system-ui,sans-serif;font-size:13px;font-weight:500;color:var(--label);letter-spacing:0.02em;margin-bottom:14px}
+  .event-count-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+  /* Backdrop comparison (scenario 5) */
+  .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:8px}
+  .compare-cell{display:flex;flex-direction:column;gap:14px}
+  .compare-label{font-family:'Geist',system-ui,sans-serif;font-size:11px;font-weight:500;color:var(--tertiary);letter-spacing:0.14em;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+  .compare-label .dot{width:6px;height:6px;border-radius:50%}
+  .compare-label .dot.dot-opaque{background:#A6968A}
+  .compare-label .dot.dot-translucent{background:#FFD6CC}
+  .compare-label .key{color:var(--secondary);font-weight:400;text-transform:none;letter-spacing:0;font-size:13px}
+
+  .demo-stage{position:relative;border-radius:14px;overflow:hidden;aspect-ratio:16/10;min-height:520px;border:1px solid var(--rule);isolation:isolate}
+
+  .mock-desktop{position:absolute;inset:0;background:linear-gradient(155deg,#3F4F47 0%,#5F7768 45%,#8FA98F 100%);z-index:0}
+  .mock-desktop::after{content:"";position:absolute;inset:0;background:radial-gradient(800px 500px at 30% 20%, rgba(255,236,200,0.12), transparent 60%)}
+  .mock-window{position:absolute;background:#F6F2EB;border-radius:10px;box-shadow:0 16px 40px rgba(0,0,0,0.40), 0 2px 6px rgba(0,0,0,0.20);overflow:hidden}
+  .mock-window.code{top:9%;left:6%;width:54%;height:78%;background:#1F2530;color:#D6DCE3}
+  .mock-window.browser{top:26%;right:5%;width:46%;height:64%}
+  .mock-titlebar{display:flex;align-items:center;gap:7px;padding:9px 12px;background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.06)}
+  .mock-window.browser .mock-titlebar{background:#ECE7DE;border-bottom-color:rgba(0,0,0,0.06)}
+  .mock-titlebar .light{width:11px;height:11px;border-radius:50%}
+  .mock-titlebar .light.r{background:#FF5F57}
+  .mock-titlebar .light.y{background:#FEBC2E}
+  .mock-titlebar .light.g{background:#28C840}
+  .mock-titlebar .url{flex:1;margin-left:14px;height:18px;background:rgba(0,0,0,0.06);border-radius:5px}
+  .mock-body{padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+  .mock-line{height:8px;border-radius:3px;background:rgba(255,255,255,0.08)}
+  .mock-window.browser .mock-line{background:rgba(0,0,0,0.08)}
+  .mock-line.kw{background:#8AB3D9}
+  .mock-line.str{background:#D69E8A}
+  .mock-line.fn{background:#C5D69A}
+  .mock-line.com{background:rgba(255,255,255,0.18)}
+  .mock-line.b-h{background:#A8B5D6;height:12px;border-radius:4px}
+  .mock-line.b-acc{background:#D69E8A}
+  .mock-line.w70{width:70%}.mock-line.w55{width:55%}.mock-line.w40{width:40%}.mock-line.w85{width:85%}.mock-line.w30{width:30%}.mock-line.w62{width:62%}.mock-line.w48{width:48%}.mock-line.w78{width:78%}
+
+  .demo-backdrop{position:absolute;inset:0;z-index:1;pointer-events:none}
+  .demo-backdrop.opaque{background:linear-gradient(135deg,#1A1612 0%,#221C18 50%,#1A1612 100%);box-shadow:inset 0 0 200px 0 rgba(255,214,204,0.32), inset 0 0 56px 0 rgba(255,214,204,0.18), inset 0 0 0 2px rgba(255,214,204,0.32)}
+  .demo-backdrop.translucent{background:radial-gradient(ellipse 110% 90% at 50% 50%, rgba(110,55,38,0.20) 0%, rgba(95,48,34,0.30) 55%, rgba(75,38,28,0.42) 100%);backdrop-filter:blur(14px) saturate(150%);-webkit-backdrop-filter:blur(14px) saturate(150%);box-shadow:inset 0 0 200px 0 rgba(255,180,150,0.30), inset 0 0 60px 0 rgba(255,214,204,0.22), inset 0 0 0 2px rgba(255,214,204,0.40)}
+  .demo-backdrop.translucent::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 90% 70% at 50% 50%, transparent 30%, rgba(255,180,150,0.10) 80%, rgba(255,180,150,0.20) 100%);pointer-events:none;mix-blend-mode:screen}
+
+  .demo-content{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;padding:32px}
+  .demo-card{width:88%;max-width:540px;background:var(--surface);border-radius:16px;padding:32px 36px;border:1px solid rgba(255,214,204,0.12);position:relative;box-shadow:0 1px 0 rgba(255,255,255,0.05) inset, 0 22px 60px -24px rgba(0,0,0,0.75), 0 0 60px -16px rgba(255,214,204,0.22)}
+  .demo-card .alert-header{display:flex;align-items:flex-start;gap:20px;margin-bottom:18px}
+  .demo-card .alert-title-block{flex:1;min-width:0}
+  .demo-card .alert-title{font-family:'Geist',system-ui,sans-serif;font-weight:600;font-size:28px;line-height:1.1;letter-spacing:-0.8px;color:var(--label);margin:0 0 8px}
+  .demo-card .alert-meta{display:flex;align-items:center;gap:10px;font-family:'Geist',system-ui,sans-serif;font-size:13px;color:var(--secondary);flex-wrap:wrap}
+  .demo-card .alert-meta .time{color:var(--accent);font-weight:500}
+  .demo-card .alert-meta .sep{color:var(--tertiary)}
+  .demo-card .countdown-ring{position:relative;width:56px;height:56px;flex:none}
+  .demo-card .countdown-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .demo-card .countdown-ring .track{stroke:rgba(255,214,204,0.14);fill:none}
+  .demo-card .countdown-ring .progress{stroke:var(--accent);fill:none;stroke-linecap:round}
+  .demo-card .countdown-ring .center-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Geist',system-ui,sans-serif;font-size:13px;font-weight:500;color:var(--label);font-variant-numeric:tabular-nums}
+  .demo-card .alert-actions{display:flex;align-items:center;justify-content:center;gap:10px;padding-top:18px;border-top:1px solid var(--rule);margin-top:6px}
+  .demo-card .btn{padding:11px 24px;font-size:13px;font-weight:600;border-radius:10px}
+
+  /* Countdown progression mini-cards */
+  .progression-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .prog-cell{background:#0E0B09;border-radius:12px;padding:32px;display:flex;flex-direction:column;align-items:center;gap:18px;border:1px solid rgba(255,214,204,0.06);position:relative;overflow:hidden}
+  .prog-cell::before{content:"";position:absolute;inset:0;background:radial-gradient(300px 200px at 50% 30%, rgba(255,214,204,0.06), transparent 60%);pointer-events:none}
+  .prog-cell .big-ring{position:relative;width:140px;height:140px;z-index:1}
+  .prog-cell .big-ring svg{transform:rotate(-90deg)}
+  .prog-cell .big-ring .center-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Geist',system-ui,sans-serif;font-size:32px;font-weight:600;color:var(--label);font-variant-numeric:tabular-nums}
+  .prog-cell .label{font-size:11px;font-weight:500;color:var(--tertiary);letter-spacing:0.14em;text-transform:uppercase;z-index:1}
+  .prog-cell .label b{display:block;color:var(--label);font-size:14px;letter-spacing:0.04em;text-transform:none;font-weight:500;margin-top:4px}
+</style>
+</head>
+<body data-checkpoint="page">
+
+<div class="page">
+
+  <header class="doc-header" data-checkpoint="header">
+    <div>
+      <div class="crumb" data-checkpoint="text">Nudgebar · Alert design</div>
+      <h1 data-checkpoint="text">Full-screen alert · 4 scenarios</h1>
+    </div>
+    <div class="meta" data-checkpoint="text">Soft Pastel · ink + blush · Geist 600</div>
+  </header>
+
+  <!-- SCENARIO 1: SINGLE EVENT -->
+  <section class="scenario" data-checkpoint="scenario-single">
+    <div class="scenario-head">
+      <h2 data-checkpoint="text"><span class="num">1</span>Single event · video + in-person variants</h2>
+      <span class="tag" data-checkpoint="text">Calendar color · duration · organizer · Join button</span>
+    </div>
+
+    <div class="stage" data-checkpoint="stage-single" style="min-height:1100px;aspect-ratio:auto">
+      <div class="corner-logo" data-checkpoint="corner-logo-1">
+        <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.06"/><circle cx="100" cy="100" r="46" fill="#FFD6CC" opacity="0.10"/><circle cx="100" cy="100" r="34" fill="#FFD6CC" opacity="0.20"/><circle cx="100" cy="40" r="14" fill="#FFD6CC"/><circle cx="160" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="160" r="14" fill="#FFD6CC"/><circle cx="40" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="100" r="22" fill="#FFD6CC"/></svg>
+        <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+      </div>
+      <div class="corner-meta" data-checkpoint="corner-meta-1">
+        <span data-checkpoint="text">9:48 AM · Wed Oct 23</span>
+      </div>
+
+      <div class="stage-inner">
+        <div class="card-stack gap-md">
+
+          <div class="variant-label" data-checkpoint="text"><span class="dot"></span>Video meeting · with Join action</span></div>
+          <div class="alert-card" data-checkpoint="card-single-video" style="--cal-color:#6BA3E6">
+            <div class="alert-header">
+              <div class="alert-title-block">
+                <h3 class="alert-title" data-checkpoint="text">Quarterly Review · Engineering Org</h3>
+                <div class="alert-meta">
+                  <span class="time" data-checkpoint="text">10:00 – 11:00 AM</span>
+                  <span class="sep">·</span>
+                  <span data-checkpoint="text">1h · in 5 min</span>
+                  <span class="sep">·</span>
+                  <span data-checkpoint="text">with Sarah Chen</span>
+                </div>
+                <div class="alert-submeta">
+                  <span class="cal-chip" data-checkpoint="text"><span class="swatch"></span>Work</span>
+                  <span class="conf-chip zoom" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>Zoom</span>
+                </div>
+              </div>
+              <div class="countdown-ring" data-checkpoint="ring-single-video">
+                <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="28" stroke-width="4"/><circle class="progress" cx="32" cy="32" r="28" stroke-width="4" stroke-dasharray="175.93" stroke-dashoffset="29.3"/></svg>
+                <div class="center-text" data-checkpoint="text">25s</div>
+              </div>
+            </div>
+
+            <div class="alert-actions split">
+              <div class="actions-left">
+                <button class="btn btn-ghost" data-checkpoint="text">Snooze<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5l3 3 3-3"/></svg></button>
+                <button class="btn btn-ghost" data-checkpoint="text">Dismiss</button>
+              </div>
+              <div class="actions-right">
+                <button class="btn btn-join" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>Join meeting</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="variant-label" data-checkpoint="text"><span class="dot"></span>In-person · location, no Join</span></div>
+          <div class="alert-card" data-checkpoint="card-single-inperson" style="--cal-color:#E29F45">
+            <div class="alert-header">
+              <div class="alert-title-block">
+                <h3 class="alert-title" data-checkpoint="text">Coffee with Daniel</h3>
+                <div class="alert-meta">
+                  <span class="time" data-checkpoint="text">10:00 – 10:45 AM</span>
+                  <span class="sep">·</span>
+                  <span data-checkpoint="text">45 min · in 5 min</span>
+                </div>
+                <div class="alert-submeta">
+                  <span class="cal-chip" data-checkpoint="text"><span class="swatch"></span>Personal</span>
+                  <span class="meta-item" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Blue Bottle · 14th &amp; Mission</span>
+                </div>
+              </div>
+              <div class="countdown-ring" data-checkpoint="ring-single-inperson">
+                <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="28" stroke-width="4"/><circle class="progress" cx="32" cy="32" r="28" stroke-width="4" stroke-dasharray="175.93" stroke-dashoffset="29.3"/></svg>
+                <div class="center-text" data-checkpoint="text">25s</div>
+              </div>
+            </div>
+
+            <div class="alert-actions">
+              <button class="btn btn-ghost" data-checkpoint="text">Snooze<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5l3 3 3-3"/></svg></button>
+              <button class="btn btn-primary" data-checkpoint="text">Dismiss</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="stage-footer" data-checkpoint="footer-single">
+          <span class="auto-dismiss" data-checkpoint="text">Auto-dismiss in <span class="ad-time">25s</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCENARIO 2: MULTIPLE EVENTS -->
+  <section class="scenario" data-checkpoint="scenario-multi">
+    <div class="scenario-head">
+      <h2 data-checkpoint="text"><span class="num">2</span>Multiple events · unified block</h2>
+      <span class="tag" data-checkpoint="text">Three events · one shared action pair</span>
+    </div>
+
+    <div class="stage" data-checkpoint="stage-multi">
+      <div class="corner-logo" data-checkpoint="corner-logo-2">
+        <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.06"/><circle cx="100" cy="100" r="46" fill="#FFD6CC" opacity="0.10"/><circle cx="100" cy="100" r="34" fill="#FFD6CC" opacity="0.20"/><circle cx="100" cy="40" r="14" fill="#FFD6CC"/><circle cx="160" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="160" r="14" fill="#FFD6CC"/><circle cx="40" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="100" r="22" fill="#FFD6CC"/></svg>
+        <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+      </div>
+      <div class="corner-meta" data-checkpoint="corner-meta-2">
+        <span data-checkpoint="text">9:55 AM · Wed Oct 23 · 3 alerts</span>
+      </div>
+
+      <div class="stage-inner">
+        <div class="card-stack">
+
+          <div class="alert-card" data-checkpoint="card-multi">
+            <div class="alert-header">
+              <div class="alert-title-block">
+                <span class="event-count-chip" data-checkpoint="text"><span class="dot"></span>3 concurrent alerts</span>
+                <h3 class="alert-title" data-checkpoint="text">Quarterly Review &amp; 2 more</h3>
+                <div class="alert-meta">
+                  <span class="time" data-checkpoint="text">10:00 AM — 10:05 AM</span>
+                  <span class="sep">·</span>
+                  <span data-checkpoint="text">Starting in 5 min</span>
+                </div>
+              </div>
+              <div class="countdown-ring"><svg viewBox="0 0 96 96"><circle class="track" cx="48" cy="48" r="42" stroke-width="5"/><circle class="progress" cx="48" cy="48" r="42" stroke-width="5" stroke-dasharray="263.89" stroke-dashoffset="44"/></svg><div class="center-text" data-checkpoint="text">25s</div></div>
+            </div>
+
+            <div class="event-list" data-checkpoint="event-list">
+              <div class="event-row" data-checkpoint="event-row-1" style="--cal-color:#6BA3E6">
+                <span class="event-cal-dot"></span>
+                <span class="event-time" data-checkpoint="text">10:00 AM</span>
+                <div class="event-body">
+                  <div class="event-title" data-checkpoint="text">Quarterly Review · Engineering Org</div>
+                  <div class="event-loc" data-checkpoint="text"><span>1h</span><span class="sep">·</span><span class="organizer">with Sarah Chen</span><span class="sep">·</span><span class="lead">in 5 min</span></div>
+                </div>
+                <button class="btn-join-row" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>Join</button>
+              </div>
+              <div class="event-row" data-checkpoint="event-row-2" style="--cal-color:#6BA3E6">
+                <span class="event-cal-dot"></span>
+                <span class="event-time" data-checkpoint="text">10:00 AM</span>
+                <div class="event-body">
+                  <div class="event-title" data-checkpoint="text">Sync with Sarah · 1:1</div>
+                  <div class="event-loc" data-checkpoint="text"><span>30 min</span><span class="sep">·</span><span class="organizer">with Sarah Chen</span><span class="sep">·</span><span class="lead">in 5 min</span></div>
+                </div>
+                <button class="btn-join-row" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>Join</button>
+              </div>
+              <div class="event-row" data-checkpoint="event-row-3" style="--cal-color:#C485D6">
+                <span class="event-cal-dot"></span>
+                <span class="event-time" data-checkpoint="text">10:05 AM</span>
+                <div class="event-body">
+                  <div class="event-title" data-checkpoint="text">Design Critique · Mobile Squad</div>
+                  <div class="event-loc" data-checkpoint="text"><span>45 min</span><span class="sep">·</span><span class="organizer">with Alex Park</span><span class="sep">·</span><span class="loc-text">Studio 3</span><span class="sep">·</span><span class="lead">in 10 min</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="alert-actions">
+              <button class="btn btn-ghost" data-checkpoint="text">Snooze All<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5l3 3 3-3"/></svg></button>
+              <button class="btn btn-primary" data-checkpoint="text">Dismiss All (3)</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="stage-footer" data-checkpoint="footer-multi">
+          <span class="auto-dismiss" data-checkpoint="text">Auto-dismiss all in <span class="ad-time">25s</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCENARIO 3: SNOOZE DROPDOWN OPEN -->
+  <section class="scenario" data-checkpoint="scenario-snooze">
+    <div class="scenario-head">
+      <h2 data-checkpoint="text"><span class="num">3</span>Snooze interaction · dropdown open</h2>
+      <span class="tag" data-checkpoint="text">User clicked Snooze</span>
+    </div>
+
+    <div class="stage" data-checkpoint="stage-snooze">
+      <div class="corner-logo" data-checkpoint="corner-logo-3">
+        <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.06"/><circle cx="100" cy="100" r="46" fill="#FFD6CC" opacity="0.10"/><circle cx="100" cy="100" r="34" fill="#FFD6CC" opacity="0.20"/><circle cx="100" cy="40" r="14" fill="#FFD6CC"/><circle cx="160" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="160" r="14" fill="#FFD6CC"/><circle cx="40" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="100" r="22" fill="#FFD6CC"/></svg>
+        <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+      </div>
+      <div class="corner-meta" data-checkpoint="corner-meta-3">
+        <span data-checkpoint="text">9:48 AM · Wed Oct 23</span>
+      </div>
+
+      <div class="stage-inner">
+        <div class="card-stack">
+
+          <div class="alert-card" data-checkpoint="card-snooze" style="margin-bottom:140px">
+            <div class="alert-header">
+              <div class="alert-title-block">
+                <h3 class="alert-title" data-checkpoint="text">Quarterly Review · Engineering Org</h3>
+                <div class="alert-meta">
+                  <span class="time" data-checkpoint="text">10:00 AM · in 12 minutes</span>
+                  <span class="sep">·</span>
+                  <span class="meta-item" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><line x1="3" y1="9" x2="21" y2="9"/></svg>Work</span>
+                  <span class="sep">·</span>
+                  <span class="meta-item" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Conference Room A</span>
+                </div>
+              </div>
+              <div class="countdown-ring"><svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="28" stroke-width="4"/><circle class="progress" cx="32" cy="32" r="28" stroke-width="4" stroke-dasharray="175.93" stroke-dashoffset="29.3"/></svg><div class="center-text" data-checkpoint="text">25s</div></div>
+            </div>
+
+            <div class="alert-actions">
+              <div class="snooze-wrap">
+                <div class="snooze-menu" data-checkpoint="snooze-menu">
+                  <div class="menu-head" data-checkpoint="text">Snooze for…</div>
+                  <div class="menu-item focused" data-checkpoint="text">1 minute<span class="key">⌘1</span></div>
+                  <div class="menu-item" data-checkpoint="text">5 minutes<span class="key">⌘5</span></div>
+                  <div class="menu-item" data-checkpoint="text">10 minutes<span class="key">⌘0</span></div>
+                  <div class="menu-divider"></div>
+                  <div class="menu-item" style="color:var(--tertiary);font-size:11px;justify-content:flex-start" data-checkpoint="text">Re-fires at start - lead time if sooner</div>
+                </div>
+                <button class="btn btn-ghost" style="background:rgba(255,214,204,0.10);color:var(--label);border-color:var(--rule-strong)" data-checkpoint="text">Snooze<svg class="caret" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5l3 3 3-3"/></svg></button>
+              </div>
+              <button class="btn btn-primary" data-checkpoint="text">Dismiss</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="stage-footer" data-checkpoint="footer-snooze">
+          <span class="auto-dismiss" data-checkpoint="text">Auto-dismiss in <span class="ad-time">25s</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCENARIO 4: COUNTDOWN PROGRESSION -->
+  <section class="scenario" data-checkpoint="scenario-countdown">
+    <div class="scenario-head">
+      <h2 data-checkpoint="text"><span class="num">4</span>Auto-dismiss countdown · progression</h2>
+      <span class="tag" data-checkpoint="text">30s → 20s → 10s → 3s remaining</span>
+    </div>
+
+    <div class="progression-grid" data-checkpoint="progression">
+
+      <div class="prog-cell" data-checkpoint="prog-30">
+        <div class="big-ring">
+          <svg viewBox="0 0 140 140"><circle class="track" cx="70" cy="70" r="62" stroke-width="6" stroke="rgba(255,214,204,0.14)" fill="none"/><circle cx="70" cy="70" r="62" stroke-width="6" stroke="#FFD6CC" fill="none" stroke-linecap="round" stroke-dasharray="389.56" stroke-dashoffset="0"/></svg>
+          <div class="center-text" data-checkpoint="text">30</div>
+        </div>
+        <div class="label" data-checkpoint="text">Phase 1<b>Fresh · 100%</b></div>
+      </div>
+
+      <div class="prog-cell" data-checkpoint="prog-20">
+        <div class="big-ring">
+          <svg viewBox="0 0 140 140"><circle class="track" cx="70" cy="70" r="62" stroke-width="6" stroke="rgba(255,214,204,0.14)" fill="none"/><circle cx="70" cy="70" r="62" stroke-width="6" stroke="#FFD6CC" fill="none" stroke-linecap="round" stroke-dasharray="389.56" stroke-dashoffset="129.85" transform="rotate(-90 70 70)"/></svg>
+          <div class="center-text" data-checkpoint="text">20</div>
+        </div>
+        <div class="label" data-checkpoint="text">Phase 2<b>Active · 67%</b></div>
+      </div>
+
+      <div class="prog-cell" data-checkpoint="prog-10">
+        <div class="big-ring">
+          <svg viewBox="0 0 140 140"><circle class="track" cx="70" cy="70" r="62" stroke-width="6" stroke="rgba(255,214,204,0.14)" fill="none"/><circle cx="70" cy="70" r="62" stroke-width="6" stroke="#FFD6CC" fill="none" stroke-linecap="round" stroke-dasharray="389.56" stroke-dashoffset="259.71" transform="rotate(-90 70 70)"/></svg>
+          <div class="center-text" data-checkpoint="text">10</div>
+        </div>
+        <div class="label" data-checkpoint="text">Phase 3<b>Closing · 33%</b></div>
+      </div>
+
+      <div class="prog-cell" data-checkpoint="prog-3">
+        <div class="big-ring">
+          <svg viewBox="0 0 140 140"><circle class="track" cx="70" cy="70" r="62" stroke-width="6" stroke="rgba(255,214,204,0.14)" fill="none"/><circle cx="70" cy="70" r="62" stroke-width="6" stroke="#FFD6CC" fill="none" stroke-linecap="round" stroke-dasharray="389.56" stroke-dashoffset="350.6" transform="rotate(-90 70 70)"/></svg>
+          <div class="center-text" data-checkpoint="text">3</div>
+        </div>
+        <div class="label" data-checkpoint="text">Phase 4<b>Final · 10%</b></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SCENARIO 5: BACKDROP COMPARISON -->
+  <section class="scenario" data-checkpoint="scenario-backdrop">
+    <div class="scenario-head">
+      <h2 data-checkpoint="text"><span class="num">5</span>Backdrop · opaque vs translucent over the desktop</h2>
+      <span class="tag" data-checkpoint="text">Card stays opaque · only backdrop varies</span>
+    </div>
+
+    <div class="compare-grid">
+
+      <div class="compare-cell" data-checkpoint="compare-opaque">
+        <div class="compare-label" data-checkpoint="text"><span class="dot dot-opaque"></span>Opaque (current)<span class="key">— full takeover, desktop hidden</span></div>
+        <div class="demo-stage" data-checkpoint="demo-stage-opaque">
+          <div class="mock-desktop" data-checkpoint="mock-desktop-opaque">
+            <div class="mock-window code">
+              <div class="mock-titlebar"><span class="light r"></span><span class="light y"></span><span class="light g"></span></div>
+              <div class="mock-body">
+                <div class="mock-line kw w40"></div>
+                <div class="mock-line str w62"></div>
+                <div class="mock-line fn w55"></div>
+                <div class="mock-line com w70"></div>
+                <div class="mock-line w48"></div>
+                <div class="mock-line str w30"></div>
+                <div class="mock-line kw w78"></div>
+                <div class="mock-line w55"></div>
+                <div class="mock-line fn w62"></div>
+              </div>
+            </div>
+            <div class="mock-window browser">
+              <div class="mock-titlebar"><span class="light r"></span><span class="light y"></span><span class="light g"></span><span class="url"></span></div>
+              <div class="mock-body">
+                <div class="mock-line b-h w70"></div>
+                <div class="mock-line w85"></div>
+                <div class="mock-line w62"></div>
+                <div class="mock-line b-acc w40"></div>
+                <div class="mock-line w78"></div>
+                <div class="mock-line w55"></div>
+              </div>
+            </div>
+          </div>
+          <div class="demo-backdrop opaque"></div>
+          <div class="demo-content">
+            <div class="demo-card" data-checkpoint="demo-card-opaque">
+              <div class="alert-header">
+                <div class="alert-title-block">
+                  <h3 class="alert-title" data-checkpoint="text">Quarterly Review</h3>
+                  <div class="alert-meta">
+                    <span class="time" data-checkpoint="text">10:00 AM</span>
+                    <span class="sep">·</span>
+                    <span data-checkpoint="text">in 5 min</span>
+                  </div>
+                </div>
+                <div class="countdown-ring"><svg viewBox="0 0 56 56"><circle class="track" cx="28" cy="28" r="24" stroke-width="4"/><circle class="progress" cx="28" cy="28" r="24" stroke-width="4" stroke-dasharray="150.8" stroke-dashoffset="25.1"/></svg><div class="center-text" data-checkpoint="text">25s</div></div>
+              </div>
+              <div class="alert-actions">
+                <button class="btn btn-ghost" data-checkpoint="text">Snooze</button>
+                <button class="btn btn-primary" data-checkpoint="text">Dismiss</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="compare-cell" data-checkpoint="compare-translucent">
+        <div class="compare-label" data-checkpoint="text"><span class="dot dot-translucent"></span>Translucent + blur (proposed)<span class="key">— vibrancy, desktop visible</span></div>
+        <div class="demo-stage" data-checkpoint="demo-stage-translucent">
+          <div class="mock-desktop" data-checkpoint="mock-desktop-translucent">
+            <div class="mock-window code">
+              <div class="mock-titlebar"><span class="light r"></span><span class="light y"></span><span class="light g"></span></div>
+              <div class="mock-body">
+                <div class="mock-line kw w40"></div>
+                <div class="mock-line str w62"></div>
+                <div class="mock-line fn w55"></div>
+                <div class="mock-line com w70"></div>
+                <div class="mock-line w48"></div>
+                <div class="mock-line str w30"></div>
+                <div class="mock-line kw w78"></div>
+                <div class="mock-line w55"></div>
+                <div class="mock-line fn w62"></div>
+              </div>
+            </div>
+            <div class="mock-window browser">
+              <div class="mock-titlebar"><span class="light r"></span><span class="light y"></span><span class="light g"></span><span class="url"></span></div>
+              <div class="mock-body">
+                <div class="mock-line b-h w70"></div>
+                <div class="mock-line w85"></div>
+                <div class="mock-line w62"></div>
+                <div class="mock-line b-acc w40"></div>
+                <div class="mock-line w78"></div>
+                <div class="mock-line w55"></div>
+              </div>
+            </div>
+          </div>
+          <div class="demo-backdrop translucent"></div>
+          <div class="demo-content">
+            <div class="demo-card" data-checkpoint="demo-card-translucent">
+              <div class="alert-header">
+                <div class="alert-title-block">
+                  <h3 class="alert-title" data-checkpoint="text">Quarterly Review</h3>
+                  <div class="alert-meta">
+                    <span class="time" data-checkpoint="text">10:00 AM</span>
+                    <span class="sep">·</span>
+                    <span data-checkpoint="text">in 5 min</span>
+                  </div>
+                </div>
+                <div class="countdown-ring"><svg viewBox="0 0 56 56"><circle class="track" cx="28" cy="28" r="24" stroke-width="4"/><circle class="progress" cx="28" cy="28" r="24" stroke-width="4" stroke-dasharray="150.8" stroke-dashoffset="25.1"/></svg><div class="center-text" data-checkpoint="text">25s</div></div>
+              </div>
+              <div class="alert-actions">
+                <button class="btn btn-ghost" data-checkpoint="text">Snooze</button>
+                <button class="btn btn-primary" data-checkpoint="text">Dismiss</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- DESIGN TOKENS REFERENCE -->
+  <section class="scenario" data-checkpoint="scenario-tokens">
+    <div class="scenario-head">
+      <h2 data-checkpoint="text"><span class="num">6</span>Design tokens applied</h2>
+      <span class="tag" data-checkpoint="text">For implementation reference</span>
+    </div>
+
+    <div style="background:#0E0B09;border-radius:14px;padding:32px 40px;border:1px solid rgba(255,214,204,0.06)">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px">
+
+        <div data-checkpoint="token-color">
+          <div style="font-size:11px;color:var(--tertiary);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px" data-checkpoint="text">Color</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:18px;height:18px;border-radius:4px;background:#1F1A17;box-shadow:inset 0 0 0 1px rgba(255,214,204,0.10)"></span><span style="font-size:12px;color:var(--secondary);font-family:ui-monospace,Menlo,monospace" data-checkpoint="text">--bg · #1F1A17</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:18px;height:18px;border-radius:4px;background:#2A231F"></span><span style="font-size:12px;color:var(--secondary);font-family:ui-monospace,Menlo,monospace" data-checkpoint="text">--surface · #2A231F</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:18px;height:18px;border-radius:4px;background:#FFD6CC"></span><span style="font-size:12px;color:var(--secondary);font-family:ui-monospace,Menlo,monospace" data-checkpoint="text">--label · #FFD6CC</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:18px;height:18px;border-radius:4px;background:#B8A89A"></span><span style="font-size:12px;color:var(--secondary);font-family:ui-monospace,Menlo,monospace" data-checkpoint="text">--secondary · #B8A89A</span></div>
+          </div>
+        </div>
+
+        <div data-checkpoint="token-type">
+          <div style="font-size:11px;color:var(--tertiary);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px" data-checkpoint="text">Typography</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--secondary);font-family:ui-monospace,Menlo,monospace">
+            <div data-checkpoint="text">title · Geist 600 / 36 / -1.2</div>
+            <div data-checkpoint="text">title.compact · 600 / 24</div>
+            <div data-checkpoint="text">meta · Geist 500 / 14</div>
+            <div data-checkpoint="text">button · Geist 500 / 13</div>
+            <div data-checkpoint="text">footer · 500 / 12 / +0.04em</div>
+          </div>
+        </div>
+
+        <div data-checkpoint="token-spacing">
+          <div style="font-size:11px;color:var(--tertiary);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px" data-checkpoint="text">Spacing</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--secondary);font-family:ui-monospace,Menlo,monospace">
+            <div data-checkpoint="text">card padding · 36 40</div>
+            <div data-checkpoint="text">card padding.compact · 24 32</div>
+            <div data-checkpoint="text">card gap (stack) · 14</div>
+            <div data-checkpoint="text">card radius · 16</div>
+            <div data-checkpoint="text">button radius · 8</div>
+          </div>
+        </div>
+
+        <div data-checkpoint="token-motion">
+          <div style="font-size:11px;color:var(--tertiary);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px" data-checkpoint="text">Motion</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--secondary);font-family:ui-monospace,Menlo,monospace">
+            <div data-checkpoint="text">countdown · stroke 1s linear</div>
+            <div data-checkpoint="text">btn hover · 120ms ease</div>
+            <div data-checkpoint="text">card enter · 240ms spring</div>
+            <div data-checkpoint="text">sound loop · 5s interval</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <footer style="padding-top:32px;border-top:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--tertiary)">
+    <span data-checkpoint="text">Nudgebar · alert design · 4 scenarios + tokens</span>
+    <span data-checkpoint="text">Brand bedrock: Soft Pastel · ink + blush · Geist 600</span>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,3 +1,4 @@
+import NudgebarAuth
 import NudgebarCore
 import Combine
 import Foundation
@@ -7,11 +8,39 @@ final class AppModel: ObservableObject {
     let preferences: AlertPreferences
     let calendarAccess: CalendarAccess
     let presenter: AlertPresenter
+    let ticker = CountdownTicker()
+    let snoozeStore = SnoozeStore()
+    let connectorStore = ConnectorStore()
 
+    /// Upcoming events from now through end of tomorrow, sorted ascending, capped at 25.
+    @Published private(set) var upcomingEvents: [AlertCandidate] = []
+
+    var nextUpcomingEvent: AlertCandidate? {
+        // The menu-bar countdown is for the next timed event; all-day events still
+        // appear in the popover but have no meaningful countdown.
+        upcomingEvents.first { !$0.isAllDay }
+    }
+
+    /// Set by the app delegate to open the settings window from the popover/menu.
+    var openSettingsAction: (() -> Void)?
+
+    @Published var connectError: String?
+    private let oauthFlow = OAuthFlow()
+
+    private let defaults: UserDefaults
+    private let notifier = NotificationDelivery()
+    private let previewPlayer = SoundPlayer()
     private var monitor: EventMonitor?
+    private var alertWindow: AlertWindowController?
     private var hasStarted = false
+    private var cancellables = Set<AnyCancellable>()
+
+    // macOS exposes no public Focus/DND API; the "respect Focus" toggle is the
+    // reliable control and this stays false (best-effort) until that changes.
+    private var focusActive: Bool { false }
 
     init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         self.preferences = AlertPreferences(defaults: defaults)
         self.calendarAccess = CalendarAccess()
         self.presenter = AlertPresenter()
@@ -24,11 +53,37 @@ final class AppModel: ObservableObject {
 
         hasStarted = true
         calendarAccess.refreshAuthorization()
+        notifier.requestAuthorization()
+        refreshUpcoming()
+
+        // Re-query whenever EventKit reports a remote sync so newly synced events
+        // appear without waiting for relaunch.
+        calendarAccess.didChangeExternally
+            .receive(on: RunLoop.main)
+            .sink { [weak self] in self?.refreshUpcoming() }
+            .store(in: &cancellables)
+
+        // Prompt for calendar access on first launch so events load without the
+        // user having to hunt for the in-popover Grant button.
+        if calendarAccess.isUndetermined {
+            requestCalendarAccess()
+        }
 
         let monitor = EventMonitor(
             calendarAccess: calendarAccess,
             preferences: preferences,
-            presenter: presenter
+            snoozeStore: snoozeStore,
+            connectorStore: connectorStore,
+            defaults: defaults,
+            present: { [weak self] event in
+                guard let self else { return }
+                if event.isAllDay {
+                    self.fireAllDayAlert(event: event)
+                } else {
+                    self.fireAlert(event: event)
+                }
+            },
+            onTick: { [weak self] in self?.refreshUpcoming() }
         )
         self.monitor = monitor
         monitor.start()
@@ -37,18 +92,235 @@ final class AppModel: ObservableObject {
     func requestCalendarAccess() {
         Task {
             await calendarAccess.requestAccess()
+            refreshUpcoming()
         }
     }
 
     func refreshCalendars() {
         calendarAccess.refreshAuthorization()
+        refreshUpcoming()
+    }
+
+    /// User-triggered refresh: nudge remote accounts to sync and re-query now.
+    func forceRefresh() {
+        calendarAccess.refreshAuthorization()
+        calendarAccess.refreshRemoteSources()
+        refreshUpcoming()
+    }
+
+    /// Recompute the upcoming-events window and refresh the countdown cadence.
+    func refreshUpcoming(now: Date = .now) {
+        let windowEnd = UpcomingEventsList.endOfTomorrow(from: now)
+        let enabledCalendarIDs = preferences.enabledCalendarIDs(from: calendarAccess.calendars)
+        let events = calendarAccess.upcomingEvents(
+            from: now,
+            to: windowEnd,
+            enabledCalendarIDs: enabledCalendarIDs
+        )
+        snoozeStore.clearExpired(now: now)
+        // Merge EventKit events with synced cloud-connector occurrences.
+        upcomingEvents = UpcomingEventsList.filter(events + connectorStore.occurrences, now: now)
+        ticker.update(nextEventStart: nextUpcomingEvent?.startDate, now: now)
+    }
+
+    /// Route a due event through the delivery decision: full-screen window,
+    /// notification fallback, or suppressed.
+    func fireAlert(event: AlertCandidate) {
+        let decision = AlertDeliveryDecider.decide(
+            fullScreenEnabled: preferences.fullScreenAlerts,
+            respectFocus: preferences.respectFocus,
+            focusActive: focusActive,
+            notificationFallback: preferences.notificationFallbackEnabled
+        )
+        switch decision {
+        case .fullScreen:
+            let sound = preferences.effectiveSettings(for: event).soundName
+            alertWindowController().present(
+                event: event,
+                autoDismissSeconds: preferences.autoDismissSeconds,
+                soundName: sound
+            )
+        case .notification:
+            notifier.deliver(event: event)
+        case .suppressed:
+            break
+        }
+    }
+
+    /// All-day alerts use their own delivery toggle (notification vs full-screen).
+    func fireAllDayAlert(event: AlertCandidate) {
+        if preferences.allDayAlertFullScreen {
+            alertWindowController().present(
+                event: event,
+                autoDismissSeconds: preferences.autoDismissSeconds,
+                soundName: preferences.effectiveSettings(for: event).soundName
+            )
+        } else {
+            notifier.deliver(event: event)
+        }
+    }
+
+    /// Snooze an event, capping the deadline at the event start so a long snooze
+    /// collapses to the start time.
+    func snooze(event: AlertCandidate, minutes: Int, now: Date = .now) {
+        let requested = now.addingTimeInterval(TimeInterval(max(0, minutes) * 60))
+        snoozeStore.snooze(eventID: event.id, until: min(requested, event.startDate))
+        refreshUpcoming(now: now)
+    }
+
+    func snoozeAllAlerts() {
+        alertWindow?.snoozeAllVisible(minutes: AlertPreferences.defaultSnoozeMinutes)
+    }
+
+    func dismissAllAlerts() {
+        alertWindow?.dismissAllVisible()
+    }
+
+    /// Connect a cloud provider via OAuth, store its refresh token, and start syncing.
+    func connect(providerID: ProviderID) {
+        connectError = nil
+        Task { await performConnect(providerID) }
+    }
+
+    /// Save an OAuth client ID/secret entered in the app's setup sheet.
+    func saveOAuthClient(providerID: ProviderID, clientID: String, clientSecret: String?) {
+        var config = ConnectorConfig.load()
+        let secret = (clientSecret?.isEmpty == false) ? clientSecret : nil
+        switch providerID {
+        case .calendly: config.calendlyClientID = clientID; config.calendlyClientSecret = secret
+        default: break
+        }
+        ConnectorConfig.save(config)
+        objectWillChange.send()
+    }
+
+    private func performConnect(_ providerID: ProviderID) async {
+        let config = ConnectorConfig.load()
+        guard let clientID = config.oauthClientID(for: providerID), !clientID.isEmpty else {
+            connectError = "\(providerID.displayName) isn't set up yet. Add its OAuth client ID in Settings."
+            return
+        }
+        let (redirectURI, callbackScheme) = ConnectorConfig.redirect(for: providerID, clientID: clientID)
+        guard let metadata = ProviderAuthCatalog.metadata(providerID: providerID, clientID: clientID, redirectURI: redirectURI) else {
+            connectError = "Couldn't build the OAuth request for \(providerID.displayName)."
+            return
+        }
+        do {
+            let extra: [String: String] = [:]
+            let tokens = try await oauthFlow.authorize(
+                metadata: metadata,
+                callbackScheme: callbackScheme,
+                clientSecret: config.oauthClientSecret(for: providerID),
+                extraAuthParameters: extra
+            )
+            guard let refreshToken = tokens.refreshToken else {
+                connectError = "\(providerID.displayName) did not return a refresh token (re-consent may be required)."
+                return
+            }
+            let accountID = "\(providerID.rawValue)-\(UUID().uuidString.prefix(8))"
+            let reference = ConnectorCredentials.oauthRefreshReference(providerID: providerID, accountID: accountID)
+            try ConnectorCredentials.save(refreshToken, reference: reference, kind: .oauthRefreshToken)
+            connectorStore.addAccount(ConnectedAccount(
+                id: accountID,
+                providerID: providerID,
+                displayName: providerID.displayName,
+                credentialReference: reference
+            ))
+            refreshUpcoming()
+        } catch OAuthError.cancelled {
+            // User dismissed the auth sheet; nothing to report.
+        } catch {
+            connectError = error.localizedDescription
+        }
+    }
+
+    /// Fields the credential-entry sheet should collect for a non-OAuth provider.
+    func credentialFields(for providerID: ProviderID) -> [ConnectorCredentialField] {
+        switch providerID {
+        case .calCom:
+            return [ConnectorCredentialField(key: "apiKey", label: "API key", isSecret: true)]
+        case .acuity:
+            return [
+                ConnectorCredentialField(key: "userID", label: "User ID", isSecret: false),
+                ConnectorCredentialField(key: "apiKey", label: "API key", isSecret: true)
+            ]
+        case .calDAV:
+            return [
+                ConnectorCredentialField(key: "server", label: "Server URL", isSecret: false),
+                ConnectorCredentialField(key: "username", label: "Username", isSecret: false),
+                ConnectorCredentialField(key: "password", label: "App password", isSecret: true)
+            ]
+        case .calendly:
+            return [ConnectorCredentialField(key: "token", label: "Personal Access Token", isSecret: true)]
+        case .eventKit, .googleCalendar, .microsoftGraph:
+            return []
+        }
+    }
+
+    /// Connect a credential-based provider (API key / Basic auth) from entered values.
+    func connectWithCredentials(providerID: ProviderID, values: [String: String]) {
+        connectError = nil
+        let accountID = "\(providerID.rawValue)-\(UUID().uuidString.prefix(8))"
+        let secret: String
+        switch providerID {
+        case .calCom:
+            secret = values["apiKey"] ?? ""
+        case .calendly:
+            secret = values["token"] ?? ""
+        case .acuity:
+            secret = "\(values["userID"] ?? ""):\(values["apiKey"] ?? "")"
+        case .calDAV:
+            secret = [values["server"], values["username"], values["password"]].compactMap { $0 }.joined(separator: "\u{1F}")
+        default:
+            secret = ""
+        }
+        guard secret.contains(where: { !$0.isWhitespace && $0 != ":" && $0 != "\u{1F}" }) else {
+            connectError = "Please fill in the \(providerID.displayName) credentials."
+            return
+        }
+        let reference = ConnectorCredentials.apiKeyReference(providerID: providerID, accountID: accountID)
+        do {
+            try ConnectorCredentials.save(secret, reference: reference, kind: .apiKey)
+        } catch {
+            connectError = error.localizedDescription
+            return
+        }
+        connectorStore.addAccount(ConnectedAccount(
+            id: accountID,
+            providerID: providerID,
+            displayName: providerID.displayName,
+            credentialReference: reference
+        ))
+        refreshUpcoming()
+    }
+
+    func disconnect(providerID: ProviderID) {
+        for account in connectorStore.accounts where account.providerID == providerID {
+            if let reference = account.credentialReference {
+                try? KeychainCredentialStore().delete(reference: reference)
+            }
+            connectorStore.removeAccount(id: account.id)
+        }
+        refreshUpcoming()
+    }
+
+    func previewSound(named name: String) {
+        previewPlayer.playOnce(name: name)
     }
 
     func testAlert() {
-        presenter.present(
-            event: .sample(),
-            fullScreen: preferences.fullScreenAlerts
-        )
+        fireAlert(event: .sample())
+    }
+
+    private func alertWindowController() -> AlertWindowController {
+        if let alertWindow {
+            return alertWindow
+        }
+        let controller = AlertWindowController(onSnooze: { [weak self] event, minutes in
+            self?.snooze(event: event, minutes: minutes)
+        })
+        alertWindow = controller
+        return controller
     }
 }
 
@@ -56,18 +328,35 @@ final class AppModel: ObservableObject {
 final class EventMonitor {
     private let calendarAccess: CalendarAccess
     private let preferences: AlertPreferences
-    private let presenter: AlertPresenter
+    private let snoozeStore: SnoozeStore
+    private let connectorStore: ConnectorStore
+    private let defaults: UserDefaults
+    private static let alertedKey = "alertedEventIDs"
+    private let present: @MainActor (AlertCandidate) -> Void
+    private let onTick: @MainActor () -> Void
     private var task: Task<Void, Never>?
     private var alertedEvents: [String: Date] = [:]
 
     init(
         calendarAccess: CalendarAccess,
         preferences: AlertPreferences,
-        presenter: AlertPresenter
+        snoozeStore: SnoozeStore,
+        connectorStore: ConnectorStore,
+        defaults: UserDefaults = .standard,
+        present: @escaping @MainActor (AlertCandidate) -> Void,
+        onTick: @escaping @MainActor () -> Void = {}
     ) {
         self.calendarAccess = calendarAccess
         self.preferences = preferences
-        self.presenter = presenter
+        self.snoozeStore = snoozeStore
+        self.connectorStore = connectorStore
+        self.defaults = defaults
+        self.present = present
+        self.onTick = onTick
+        if let data = defaults.data(forKey: Self.alertedKey),
+           let decoded = try? JSONDecoder().decode([String: Date].self, from: data) {
+            self.alertedEvents = decoded
+        }
     }
 
     deinit {
@@ -92,38 +381,84 @@ final class EventMonitor {
 
     private func tick() async {
         calendarAccess.refreshAuthorization()
-
-        guard calendarAccess.isAuthorized else {
-            return
-        }
+        calendarAccess.refreshRemoteSources()
 
         let now = Date()
-        let endDate = now.addingTimeInterval(max(preferences.leadTime, 60))
+
+        // Re-admit events whose snooze has elapsed so they can fire again.
+        for (id, until) in snoozeStore.snoozedUntil where until <= now {
+            alertedEvents.removeValue(forKey: id)
+            snoozeStore.clear(eventID: id)
+        }
+
+        // Sync cloud connectors over the popover window (independent of EventKit auth).
+        await connectorStore.sync(windowStart: now, windowEnd: UpcomingEventsList.endOfTomorrow(from: now))
+
         let enabledCalendarIDs = preferences.enabledCalendarIDs(from: calendarAccess.calendars)
-        let upcomingEvents = calendarAccess.upcomingEvents(
-            from: now,
-            to: endDate,
-            enabledCalendarIDs: enabledCalendarIDs
-        )
-        let dueEvents = AlertPolicy.eventsToAlert(
-            events: upcomingEvents,
-            now: now,
-            leadTime: preferences.leadTime,
-            alertedIDs: Set(alertedEvents.keys)
+
+        // Look ahead by the largest effective lead so per-calendar overrides are covered.
+        let lookAhead = max(preferences.maxEffectiveLeadSeconds, 60)
+        let eventKitEvents = calendarAccess.isAuthorized
+            ? calendarAccess.upcomingEvents(from: now, to: now.addingTimeInterval(lookAhead), enabledCalendarIDs: enabledCalendarIDs)
+            : []
+        let candidates = eventKitEvents + connectorStore.occurrences
+
+        // Re-arm events rescheduled since we last alerted them (moved events should
+        // alert again at their new time rather than stay suppressed by ID).
+        for id in AlertDueEvaluator.rescheduledIDs(candidates: candidates, alertedEvents: alertedEvents) {
+            alertedEvents.removeValue(forKey: id)
+        }
+
+        let suppressed = AlertDueEvaluator.suppressedIDs(
+            alertedEvents: alertedEvents,
+            snoozedUntil: snoozeStore.snoozedUntil,
+            now: now
         )
 
-        for event in dueEvents {
+        let timedDue = AlertDueEvaluator.timedDue(
+            candidates: candidates,
+            now: now,
+            suppressed: suppressed,
+            leadMinutes: { preferences.effectiveSettings(for: $0).leadMinutes }
+        )
+
+        // All-day events alert at a fixed clock time on a chosen day, not a lead time.
+        var allDayDue: [AlertCandidate] = []
+        if preferences.allDayAlertsEnabled, calendarAccess.isAuthorized {
+            let windowEnd = now.addingTimeInterval(TimeInterval(preferences.allDayAlertDayOffset + 2) * 86_400)
+            let allDayCandidates = calendarAccess.upcomingEvents(from: now, to: windowEnd, enabledCalendarIDs: enabledCalendarIDs)
+            allDayDue = AlertDueEvaluator.allDayDue(
+                candidates: allDayCandidates,
+                now: now,
+                suppressed: suppressed,
+                hour: preferences.allDayAlertHour,
+                minute: preferences.allDayAlertMinute,
+                dayOffset: preferences.allDayAlertDayOffset
+            )
+        }
+
+        for event in timedDue + allDayDue {
             alertedEvents[event.id] = event.startDate
-            presenter.present(event: event, fullScreen: preferences.fullScreenAlerts)
+            present(event)
         }
 
         pruneAlertHistory(relativeTo: now)
+        persistAlerted()
+        onTick()
     }
 
     private func pruneAlertHistory(relativeTo now: Date) {
-        let cutoff = now.addingTimeInterval(-24 * 60 * 60)
+        // Keep recent history long enough that dismissed multi-day / all-day events
+        // stay suppressed rather than re-firing after a day.
+        let cutoff = now.addingTimeInterval(-30 * 24 * 60 * 60)
         alertedEvents = alertedEvents.filter { _, startDate in
             startDate >= cutoff
+        }
+    }
+
+    private func persistAlerted() {
+        if let data = try? JSONEncoder().encode(alertedEvents) {
+            defaults.set(data, forKey: Self.alertedKey)
         }
     }
 }

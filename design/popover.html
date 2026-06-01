@@ -1,0 +1,1223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nudgebar — Menu-bar popover</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#2D2520;
+    --surface:#3A2F28;
+    --label:#FFD6CC;
+    --secondary:#B8A89A;
+    --tertiary:#A6968A;
+    --accent:#FFD6CC;
+    --rule:rgba(255,214,204,0.10);
+    --rule-strong:rgba(255,214,204,0.18);
+  }
+  html,body{background:#1A1612;color:var(--label);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  body{padding:48px 56px 96px}
+
+  .page{max-width:1480px;margin:0 auto}
+
+  .doc-header{display:flex;align-items:flex-end;justify-content:space-between;gap:32px;padding-bottom:28px;border-bottom:1px solid var(--rule);margin-bottom:48px}
+  .doc-header .crumb{font-size:12px;font-weight:500;color:var(--tertiary);letter-spacing:0.16em;text-transform:uppercase;margin-bottom:10px}
+  .doc-header h1{font-family:'Geist',sans-serif;font-weight:600;font-size:32px;line-height:1.05;letter-spacing:-1px}
+  .doc-header .meta{font-size:13px;color:var(--tertiary);letter-spacing:0.04em;text-align:right}
+  .brand{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+  .brand svg{width:32px;height:32px}
+  .brand .wordmark{font-family:'Geist',sans-serif;font-size:16px;font-weight:600;letter-spacing:-0.5px;color:var(--label)}
+  .brand .wordmark .period{color:var(--accent)}
+
+  /* Stage scaffold */
+  .scenario{margin-bottom:64px}
+  .scenario-head{display:flex;align-items:baseline;gap:16px;margin-bottom:24px}
+  .scenario-head h2{font-family:'Geist',sans-serif;font-weight:600;font-size:20px;letter-spacing:-0.6px}
+  .scenario-head .num{display:inline-block;width:24px;height:24px;border-radius:50%;background:rgba(255,214,204,0.10);color:var(--accent);font-size:12px;font-weight:600;text-align:center;line-height:24px;margin-right:10px;vertical-align:1px}
+  .scenario-head .tag{font-size:11px;font-weight:500;color:var(--tertiary);letter-spacing:0.14em;text-transform:uppercase}
+
+  .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+
+  /* Desktop simulation (menu bar + wallpaper) */
+  .stage{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--rule);background:linear-gradient(160deg,#4F5A4D 0%,#6E7C68 45%,#8FA28A 100%);min-height:640px;isolation:isolate}
+  .stage::after{content:"";position:absolute;inset:0;background:radial-gradient(800px 500px at 20% 0%, rgba(255,236,200,0.10), transparent 60%);pointer-events:none}
+
+  /* Mock menu bar */
+  .menubar{position:absolute;top:0;left:0;right:0;height:28px;display:flex;align-items:center;padding:0 12px;background:rgba(30,26,22,0.55);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(0,0,0,0.12);z-index:5;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;font-size:13px;color:rgba(255,255,255,0.92);font-weight:500}
+  .menubar .apple{font-size:14px;margin-right:14px;opacity:0.9}
+  .menubar .app-menu{display:flex;gap:14px;color:rgba(255,255,255,0.86)}
+  .menubar .app-menu .item-bold{font-weight:600}
+  .menubar .right{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:13px;font-variant-numeric:tabular-nums}
+  .menubar .right .status-item-nudgebar{display:inline-flex;align-items:center;gap:6px;color:#FFD6CC;font-weight:500;padding:2px 6px;border-radius:6px;background:rgba(255,214,204,0.10);position:relative}
+  .menubar .right .status-item-nudgebar.empty{color:rgba(255,255,255,0.78);background:transparent}
+  .menubar .right .status-item-nudgebar svg{width:14px;height:14px}
+  .menubar .right .sys-icons{display:inline-flex;gap:10px;color:rgba(255,255,255,0.78)}
+  .menubar .right .sys-icons svg{width:14px;height:14px}
+
+  /* Popover anchored below status item */
+  .popover-anchor{position:absolute;top:32px;right:48px;z-index:6}
+  .popover-arrow{width:14px;height:8px;margin-left:auto;margin-right:14px;background:rgba(30,26,22,0.92);clip-path:polygon(50% 0%, 0% 100%, 100% 100%);backdrop-filter:blur(28px);border-bottom:none}
+
+  .popover{width:380px;background:rgba(30,26,22,0.86);backdrop-filter:blur(36px) saturate(170%);-webkit-backdrop-filter:blur(36px) saturate(170%);border-radius:10px;border:1px solid rgba(255,214,204,0.10);box-shadow:0 16px 48px -8px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.06);overflow:hidden;color:var(--label);font-family:'Geist',sans-serif}
+
+  /* Popover header */
+  .pop-header{padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid rgba(255,214,204,0.08)}
+  .pop-header .title{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;letter-spacing:-0.3px;color:var(--label)}
+  .pop-header .title svg{width:18px;height:18px}
+  .pop-header .title .wordmark .period{color:var(--accent)}
+  .pop-header .count{font-size:11px;font-weight:500;color:var(--tertiary);letter-spacing:0.10em;text-transform:uppercase}
+
+  /* Section header */
+  .section-head{padding:14px 16px 6px;display:flex;align-items:baseline;justify-content:space-between}
+  .section-head .label{font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.14em;text-transform:uppercase}
+  .section-head .label.dim{color:var(--tertiary)}
+  .section-head .date{font-size:11px;color:var(--tertiary);letter-spacing:0.06em}
+
+  /* Event row */
+  .event-list{padding:2px 8px 6px;display:flex;flex-direction:column}
+  .event-row{display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:6px;cursor:default}
+  .event-row:hover{background:rgba(255,214,204,0.06)}
+  .event-row.now{background:rgba(255,214,204,0.10)}
+  .event-row .dot{width:8px;height:8px;border-radius:50%;background:var(--cal-color, #FFD6CC);flex:none;box-shadow:0 0 6px -1px var(--cal-color, #FFD6CC)}
+  .event-row .time{font-size:12px;font-weight:500;color:var(--tertiary);font-variant-numeric:tabular-nums;width:62px;flex:none}
+  .event-row.now .time{color:var(--accent)}
+  .event-row .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+  .event-row .title{font-size:13px;font-weight:500;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.2px}
+  .event-row .meta{font-size:11px;color:var(--tertiary);letter-spacing:0.02em}
+  .event-row .meta .lead{color:var(--accent);font-weight:500}
+  .event-row .conf{flex:none;display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;padding:2px 7px;border-radius:999px;letter-spacing:0.02em}
+  .event-row .conf.zoom{background:rgba(46,148,213,0.16);color:#A6CEEC}
+  .event-row .conf.meet{background:rgba(78,196,123,0.16);color:#A3DBB5}
+  .event-row .conf.teams{background:rgba(108,113,196,0.20);color:#BDC1E4}
+  .event-row .conf.loc{background:rgba(255,214,204,0.08);color:#C7B6A8}
+  .event-row .conf svg{width:10px;height:10px}
+
+  /* Footer with toggles */
+  .pop-footer{padding:10px 12px;border-top:1px solid rgba(255,214,204,0.08);display:flex;flex-direction:column;gap:6px;background:rgba(0,0,0,0.10)}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:6px 4px;font-size:12px;color:var(--label)}
+  .toggle-row .left{display:flex;align-items:center;gap:8px}
+  .toggle-row .left svg{width:13px;height:13px;opacity:0.7}
+  .toggle-row .left .name{font-weight:500}
+  .toggle-row .right{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tertiary)}
+  .switch{width:28px;height:16px;border-radius:999px;background:rgba(255,255,255,0.16);position:relative;transition:background 120ms}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:transform 120ms;box-shadow:0 1px 2px rgba(0,0,0,0.4)}
+  .switch.on{background:var(--accent)}
+  .switch.on::after{transform:translateX(12px);background:#1F1A17}
+  .stepper{display:inline-flex;align-items:center;gap:2px;background:rgba(255,255,255,0.06);border-radius:6px;padding:2px}
+  .stepper button{background:transparent;border:0;color:var(--secondary);font-family:'Geist',sans-serif;font-size:11px;font-weight:500;padding:2px 6px;border-radius:4px;cursor:pointer}
+  .stepper .val{padding:2px 6px;color:var(--label);font-weight:600;font-variant-numeric:tabular-nums;min-width:36px;text-align:center}
+  .pop-footer .settings-link{display:flex;align-items:center;justify-content:space-between;padding:8px;margin-top:2px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--label);font-weight:500;border-top:1px solid rgba(255,214,204,0.06);padding-top:10px}
+  .pop-footer .settings-link:hover{background:rgba(255,214,204,0.06)}
+  .pop-footer .settings-link .left{display:flex;align-items:center;gap:8px}
+  .pop-footer .settings-link svg{width:13px;height:13px;opacity:0.7}
+  .pop-footer .settings-link .chev{opacity:0.4}
+
+  /* Empty state */
+  .empty{padding:48px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .empty .glyph{width:64px;height:64px;border-radius:50%;background:rgba(255,214,204,0.06);display:flex;align-items:center;justify-content:center}
+  .empty .glyph svg{width:28px;height:28px;color:var(--accent);opacity:0.7}
+  .empty .head{font-size:15px;font-weight:600;color:var(--label);letter-spacing:-0.2px}
+  .empty .sub{font-size:12px;color:var(--tertiary);max-width:240px;line-height:1.45}
+
+  /* ============================================
+     ALTERNATIVE VARIANTS — popover internals
+  ============================================ */
+  .variants-grid{display:grid;grid-template-columns:1fr 1fr;gap:36px 32px}
+  .variant-cell{display:flex;flex-direction:column;gap:14px}
+  .variant-label{font-family:'Geist',sans-serif;font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.16em;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+  .variant-label .pill{display:inline-block;width:28px;height:22px;border-radius:6px;background:rgba(255,214,204,0.10);color:var(--accent);font-size:11px;text-align:center;line-height:22px;letter-spacing:0}
+  .variant-label .desc{color:var(--secondary);font-weight:400;text-transform:none;letter-spacing:0.02em;font-size:13px;margin-left:4px}
+  .variant-cell .pop-frame{display:flex;justify-content:center;padding:36px;background:linear-gradient(160deg,#3F4A3D 0%,#5C6E58 50%,#7A8E72 100%);border-radius:14px;border:1px solid var(--rule);min-height:580px;position:relative;overflow:hidden}
+  .variant-cell .pop-frame::after{content:"";position:absolute;inset:0;background:radial-gradient(600px 400px at 50% 0%, rgba(255,236,200,0.10), transparent 70%);pointer-events:none}
+
+  /* ===== VARIANT B — HERO-FIRST ===== */
+  .pop-hero-card{margin:8px;padding:14px;background:rgba(255,214,204,0.10);border:1px solid rgba(255,214,204,0.18);border-radius:10px;display:flex;flex-direction:column;gap:10px;position:relative}
+  .pop-hero-card::before{content:"";position:absolute;left:8px;top:14px;bottom:14px;width:3px;border-radius:2px;background:var(--cal-color, #6BA3E6);box-shadow:0 0 10px -2px var(--cal-color, #6BA3E6)}
+  .pop-hero-card .head{display:flex;align-items:center;justify-content:space-between;padding-left:14px}
+  .pop-hero-card .badge{font-size:10px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase;background:rgba(255,214,204,0.16);padding:3px 8px;border-radius:999px}
+  .pop-hero-card .time-lead{font-size:12px;color:var(--accent);font-weight:500;letter-spacing:0.02em}
+  .pop-hero-card .h-title{font-size:16px;font-weight:600;color:var(--label);letter-spacing:-0.3px;padding-left:14px}
+  .pop-hero-card .h-meta{font-size:12px;color:var(--secondary);padding-left:14px}
+  .pop-hero-card .h-meta .sep{color:var(--tertiary);margin:0 6px}
+  .pop-hero-card .h-actions{display:flex;gap:8px;padding-left:14px;margin-top:4px}
+  .pop-hero-card .btn-mini{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid transparent}
+  .pop-hero-card .btn-mini.primary{background:var(--accent);color:#1F1A17;font-weight:600;display:inline-flex;align-items:center;gap:5px}
+  .pop-hero-card .btn-mini.primary svg{width:11px;height:11px}
+  .pop-hero-card .btn-mini.ghost{background:transparent;color:var(--secondary);border-color:var(--rule)}
+  .pop-mini-list{padding:6px 10px 6px}
+  .pop-mini-list .mini-head{font-size:10px;color:var(--tertiary);letter-spacing:0.14em;text-transform:uppercase;font-weight:600;padding:6px 6px 4px}
+  .pop-mini-row{display:flex;align-items:center;gap:9px;padding:6px;border-radius:6px;font-size:12px}
+  .pop-mini-row:hover{background:rgba(255,214,204,0.06)}
+  .pop-mini-row .dot{width:6px;height:6px;border-radius:50%;background:var(--cal-color, #FFD6CC);flex:none}
+  .pop-mini-row .t{font-size:11px;color:var(--tertiary);width:54px;flex:none;font-variant-numeric:tabular-nums}
+  .pop-mini-row .tt{flex:1;color:var(--label);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pop-mini-row .cnf{font-size:10px;color:#C7B6A8;flex:none}
+
+  /* ===== VARIANT C — CARD STACK ===== */
+  .pop-card-stack{padding:8px;display:flex;flex-direction:column;gap:6px}
+  .pop-card-stack .day-pin{font-size:10px;color:var(--accent);font-weight:600;letter-spacing:0.16em;text-transform:uppercase;padding:8px 8px 4px}
+  .pop-card-stack .day-pin.dim{color:var(--tertiary)}
+  .pop-event-card{display:flex;align-items:flex-start;gap:10px;padding:10px 10px 10px 16px;background:rgba(255,214,204,0.04);border:1px solid rgba(255,214,204,0.08);border-radius:8px;position:relative;cursor:default}
+  .pop-event-card:hover{background:rgba(255,214,204,0.07)}
+  .pop-event-card::before{content:"";position:absolute;left:6px;top:14px;bottom:14px;width:3px;border-radius:2px;background:var(--cal-color, #FFD6CC);box-shadow:0 0 8px -2px var(--cal-color, #FFD6CC)}
+  .pop-event-card .left{flex:1;min-width:0}
+  .pop-event-card .row1{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}
+  .pop-event-card .row1 .time{font-size:11px;color:var(--tertiary);font-weight:500;font-variant-numeric:tabular-nums}
+  .pop-event-card .row1 .now-badge{font-size:9px;color:var(--accent);font-weight:600;letter-spacing:0.10em;text-transform:uppercase;background:rgba(255,214,204,0.14);padding:1px 6px;border-radius:999px}
+  .pop-event-card .ct{font-size:13px;font-weight:500;color:var(--label);letter-spacing:-0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+  .pop-event-card .cm{font-size:11px;color:var(--secondary)}
+  .pop-event-card .cm .sep{color:var(--tertiary);margin:0 5px}
+  .pop-event-card .right-action{flex:none;align-self:center}
+  .pop-event-card .btn-join-c{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:500;background:rgba(255,214,204,0.10);color:var(--accent);border:1px solid rgba(255,214,204,0.20);cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+  .pop-event-card .btn-join-c svg{width:11px;height:11px}
+
+  /* ===== VARIANT D — TIMELINE / AGENDA ===== */
+  .pop-timeline{padding:14px 12px;display:grid;grid-template-columns:48px 1fr;gap:0;position:relative}
+  .pop-timeline .tl-hour{font-size:10px;color:var(--tertiary);font-weight:500;letter-spacing:0.06em;padding:2px 8px 18px 0;text-align:right;font-variant-numeric:tabular-nums;display:flex;align-items:flex-start;justify-content:flex-end}
+  .pop-timeline .tl-track{position:relative;border-left:1px solid var(--rule);padding-bottom:18px;padding-left:14px}
+  .pop-timeline .tl-track::before{content:"";position:absolute;left:-3px;top:6px;width:5px;height:5px;border-radius:50%;background:rgba(255,214,204,0.16)}
+  .pop-timeline .tl-track.now::before{background:var(--accent);box-shadow:0 0 8px -1px var(--accent)}
+  .pop-timeline .tl-event{display:flex;flex-direction:column;gap:3px;padding:7px 10px;border-radius:7px;background:rgba(255,214,204,0.05);border:1px solid rgba(255,214,204,0.10);position:relative;cursor:default}
+  .pop-timeline .tl-event:hover{background:rgba(255,214,204,0.08)}
+  .pop-timeline .tl-event.now{background:rgba(255,214,204,0.10);border-color:rgba(255,214,204,0.22)}
+  .pop-timeline .tl-event::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;border-radius:2px;background:var(--cal-color, #FFD6CC);box-shadow:0 0 6px -1px var(--cal-color, #FFD6CC)}
+  .pop-timeline .tl-event .te-title{font-size:12px;font-weight:500;color:var(--label);letter-spacing:-0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:6px}
+  .pop-timeline .tl-event .te-meta{font-size:10px;color:var(--tertiary);padding-left:6px;display:flex;align-items:center;gap:6px}
+  .pop-timeline .tl-event .te-meta .conf-mini{display:inline-flex;align-items:center;gap:3px;padding:1px 5px;border-radius:999px;font-size:9px;font-weight:600;letter-spacing:0.05em}
+  .pop-timeline .tl-event .te-meta .conf-mini.zoom{background:rgba(46,148,213,0.18);color:#A6CEEC}
+  .pop-timeline .tl-event .te-meta .conf-mini.meet{background:rgba(78,196,123,0.18);color:#A3DBB5}
+  .pop-timeline .tl-event .te-meta .conf-mini.loc{background:rgba(255,214,204,0.10);color:#C7B6A8}
+  .pop-timeline .tl-day-divider{grid-column:1/-1;font-size:9px;color:var(--accent);font-weight:600;letter-spacing:0.16em;text-transform:uppercase;padding:14px 0 8px;border-top:1px solid var(--rule);margin-top:8px;text-align:center}
+  .pop-timeline .tl-day-divider.dim{color:var(--tertiary)}
+
+  /* ============================================
+     SUB-VARIANTS — A, B, D explorations
+  ============================================ */
+  .subvariant-group{margin-bottom:48px}
+  .subvariant-group h3{font-family:'Geist',sans-serif;font-size:14px;font-weight:600;color:var(--label);margin-bottom:14px;letter-spacing:-0.2px;display:flex;align-items:center;gap:10px}
+  .subvariant-group h3 .parent{display:inline-block;width:24px;height:24px;border-radius:6px;background:rgba(255,214,204,0.14);color:var(--accent);font-size:11px;font-weight:600;text-align:center;line-height:24px}
+  .subvariant-group h3 .hint{color:var(--secondary);font-weight:400;font-size:12px;letter-spacing:0.02em}
+
+  /* ===== A1 · ULTRA-DENSE ===== */
+  .a1-list{padding:2px 4px 8px}
+  .a1-list .a1-row{display:flex;align-items:center;gap:10px;padding:5px 10px;border-radius:5px;font-size:12px}
+  .a1-list .a1-row:hover{background:rgba(255,214,204,0.06)}
+  .a1-list .a1-row.now{background:rgba(255,214,204,0.10)}
+  .a1-list .a1-row .dot{width:6px;height:6px;border-radius:50%;background:var(--cal-color, #FFD6CC);flex:none}
+  .a1-list .a1-row .t{font-size:11px;color:var(--tertiary);width:54px;flex:none;font-variant-numeric:tabular-nums;font-weight:500}
+  .a1-list .a1-row.now .t{color:var(--accent)}
+  .a1-list .a1-row .tt{flex:1;font-size:12px;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.15px}
+  .a1-list .a1-row .c{font-size:10px;color:#C7B6A8;flex:none;padding:1px 6px;border-radius:999px;background:rgba(255,214,204,0.06)}
+  .a1-list .a1-row .c.zoom{color:#A6CEEC;background:rgba(46,148,213,0.16)}
+  .a1-list .a1-row .c.meet{color:#A3DBB5;background:rgba(78,196,123,0.16)}
+  .a1-list .a1-section{font-size:10px;color:var(--accent);font-weight:600;letter-spacing:0.16em;text-transform:uppercase;padding:10px 10px 4px}
+  .a1-list .a1-section.dim{color:var(--tertiary)}
+
+  /* ===== A2 · GROUPED BY CALENDAR ===== */
+  .a2-list{padding:2px 8px 8px}
+  .a2-cal-head{display:flex;align-items:center;justify-content:space-between;padding:11px 8px 6px}
+  .a2-cal-head .cal-name{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--label);font-weight:600;letter-spacing:0.04em}
+  .a2-cal-head .cal-name .swatch{width:8px;height:8px;border-radius:50%;background:var(--cal-color);box-shadow:0 0 6px -1px var(--cal-color)}
+  .a2-cal-head .cal-count{font-size:10px;color:var(--tertiary);letter-spacing:0.12em;text-transform:uppercase}
+  .a2-row{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:6px}
+  .a2-row:hover{background:rgba(255,214,204,0.06)}
+  .a2-row.now{background:rgba(255,214,204,0.10)}
+  .a2-row .t{font-size:11px;color:var(--tertiary);width:54px;flex:none;font-variant-numeric:tabular-nums;font-weight:500}
+  .a2-row.now .t{color:var(--accent)}
+  .a2-row .body{flex:1;min-width:0}
+  .a2-row .ct{font-size:12px;color:var(--label);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.15px}
+  .a2-row .cm{font-size:10px;color:var(--tertiary);margin-top:1px}
+  .a2-row .day-chip{font-size:9px;font-weight:600;color:var(--accent);letter-spacing:0.10em;text-transform:uppercase;padding:2px 6px;border-radius:999px;background:rgba(255,214,204,0.14);flex:none}
+  .a2-row .day-chip.tom{color:var(--tertiary);background:rgba(255,214,204,0.06)}
+
+  /* ===== B1 · HERO WITH COUNTDOWN RING ===== */
+  .b1-hero{margin:8px;padding:14px 14px 14px 18px;background:rgba(255,214,204,0.10);border:1px solid rgba(255,214,204,0.18);border-radius:10px;position:relative;display:flex;gap:14px;align-items:flex-start}
+  .b1-hero::before{content:"";position:absolute;left:8px;top:14px;bottom:14px;width:3px;border-radius:2px;background:var(--cal-color);box-shadow:0 0 10px -2px var(--cal-color)}
+  .b1-hero .b1-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  .b1-hero .b1-badge{display:inline-block;font-size:10px;font-weight:600;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase;background:rgba(255,214,204,0.16);padding:3px 8px;border-radius:999px;align-self:flex-start}
+  .b1-hero .b1-title{font-size:15px;font-weight:600;color:var(--label);letter-spacing:-0.3px}
+  .b1-hero .b1-meta{font-size:11px;color:var(--secondary)}
+  .b1-hero .b1-meta .sep{color:var(--tertiary);margin:0 5px}
+  .b1-hero .b1-actions{display:flex;gap:8px;margin-top:4px}
+  .b1-hero .b1-actions .btn-mini{padding:6px 12px;border-radius:7px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid transparent}
+  .b1-hero .b1-actions .primary{background:var(--accent);color:#1F1A17;font-weight:600;display:inline-flex;align-items:center;gap:5px}
+  .b1-hero .b1-actions .primary svg{width:11px;height:11px}
+  .b1-hero .b1-actions .ghost{background:transparent;color:var(--secondary);border-color:var(--rule)}
+  .b1-hero .b1-ring{flex:none;width:54px;height:54px;position:relative}
+  .b1-hero .b1-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .b1-hero .b1-ring .track{stroke:rgba(255,214,204,0.16);fill:none}
+  .b1-hero .b1-ring .progress{stroke:var(--accent);fill:none;stroke-linecap:round}
+  .b1-hero .b1-ring .ring-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--label);font-variant-numeric:tabular-nums;letter-spacing:0}
+  .b1-hero .b1-ring .ring-text .small{font-size:9px;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:-1px}
+
+  /* ===== B2 · TWO-HERO SIDE-BY-SIDE ===== */
+  .b2-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px}
+  .b2-card{padding:11px 11px 11px 14px;background:rgba(255,214,204,0.08);border:1px solid rgba(255,214,204,0.14);border-radius:9px;position:relative;display:flex;flex-direction:column;gap:6px;min-width:0}
+  .b2-card::before{content:"";position:absolute;left:6px;top:11px;bottom:11px;width:3px;border-radius:2px;background:var(--cal-color);box-shadow:0 0 8px -2px var(--cal-color)}
+  .b2-card.next{background:rgba(255,214,204,0.12);border-color:rgba(255,214,204,0.22)}
+  .b2-card .b2-tag{font-size:9px;font-weight:600;color:var(--accent);letter-spacing:0.14em;text-transform:uppercase}
+  .b2-card.next .b2-tag{color:var(--accent)}
+  .b2-card.then .b2-tag{color:var(--tertiary)}
+  .b2-card .b2-time{font-size:11px;color:var(--accent);font-weight:500;font-variant-numeric:tabular-nums}
+  .b2-card .b2-title{font-size:13px;font-weight:600;color:var(--label);letter-spacing:-0.2px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .b2-card .b2-meta{font-size:10px;color:var(--tertiary)}
+  .b2-card .b2-join{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:500;color:var(--accent);background:rgba(255,214,204,0.10);border:1px solid rgba(255,214,204,0.20);padding:4px 9px;border-radius:6px;align-self:flex-start;margin-top:2px;cursor:pointer}
+  .b2-card .b2-join svg{width:9px;height:9px}
+
+  /* ===== D1 · COMPRESSED TIMELINE ===== */
+  .d1-timeline{padding:14px 12px;display:grid;grid-template-columns:48px 1fr;gap:0}
+  .d1-timeline .d1-hour{font-size:10px;color:var(--tertiary);font-weight:500;padding:2px 8px 14px 0;text-align:right;font-variant-numeric:tabular-nums;display:flex;align-items:flex-start;justify-content:flex-end}
+  .d1-timeline .d1-track{position:relative;border-left:1px solid var(--rule);padding-bottom:14px;padding-left:14px}
+  .d1-timeline .d1-track::before{content:"";position:absolute;left:-3px;top:6px;width:5px;height:5px;border-radius:50%;background:rgba(255,214,204,0.16)}
+  .d1-timeline .d1-track.now::before{background:var(--accent);box-shadow:0 0 8px -1px var(--accent)}
+  .d1-timeline .d1-event{display:flex;flex-direction:column;gap:3px;padding:7px 10px;border-radius:7px;background:rgba(255,214,204,0.05);border:1px solid rgba(255,214,204,0.10);position:relative}
+  .d1-timeline .d1-event.now{background:rgba(255,214,204,0.10);border-color:rgba(255,214,204,0.22)}
+  .d1-timeline .d1-event::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;border-radius:2px;background:var(--cal-color);box-shadow:0 0 6px -1px var(--cal-color)}
+  .d1-timeline .d1-event .te-title{font-size:12px;font-weight:500;color:var(--label);letter-spacing:-0.2px;padding-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .d1-timeline .d1-event .te-meta{font-size:10px;color:var(--tertiary);padding-left:6px}
+  .d1-quiet{grid-column:2/-1;text-align:center;font-size:10px;color:var(--tertiary);font-weight:500;padding:10px 0 14px;letter-spacing:0.06em;display:flex;align-items:center;justify-content:center;gap:8px}
+  .d1-quiet::before, .d1-quiet::after{content:"";flex:1;height:1px;background:rgba(255,214,204,0.08);max-width:50px}
+  .d1-day-divider{grid-column:1/-1;font-size:9px;color:var(--accent);font-weight:600;letter-spacing:0.16em;text-transform:uppercase;padding:14px 0 8px;border-top:1px solid var(--rule);margin-top:6px;text-align:center}
+  .d1-day-divider.dim{color:var(--tertiary)}
+
+  /* ===== D2 · CONTINUOUS TIMELINE WITH NOW-LINE ===== */
+  .d2-timeline{padding:8px 12px 14px;display:grid;grid-template-columns:48px 1fr;gap:0;position:relative}
+  .d2-timeline .d2-hour{font-size:10px;color:var(--tertiary);font-weight:500;padding:0 8px 0 0;text-align:right;font-variant-numeric:tabular-nums;display:flex;align-items:flex-start;justify-content:flex-end;height:32px}
+  .d2-timeline .d2-track{position:relative;border-left:1px solid var(--rule);min-height:32px;padding-left:14px;display:flex;flex-direction:column;justify-content:center}
+  .d2-timeline .d2-event{padding:5px 10px;border-radius:6px;background:rgba(255,214,204,0.06);border:1px solid rgba(255,214,204,0.10);position:relative;display:flex;align-items:center;gap:8px}
+  .d2-timeline .d2-event::before{content:"";position:absolute;left:0;top:5px;bottom:5px;width:3px;border-radius:2px;background:var(--cal-color);box-shadow:0 0 6px -1px var(--cal-color)}
+  .d2-timeline .d2-event.now{background:rgba(255,214,204,0.10);border-color:rgba(255,214,204,0.22)}
+  .d2-timeline .d2-event .te-title{flex:1;font-size:12px;font-weight:500;color:var(--label);letter-spacing:-0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:6px}
+  .d2-timeline .d2-event .te-meta{font-size:10px;color:var(--tertiary);flex:none}
+  .d2-timeline .d2-empty{font-size:10px;color:var(--tertiary);opacity:0.4;padding-left:14px;font-style:italic}
+  .d2-now-line{grid-column:1/-1;display:flex;align-items:center;gap:10px;color:var(--accent);font-size:10px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;padding:4px 0;margin-left:48px}
+  .d2-now-line::after{content:"";flex:1;height:1px;background:var(--accent);box-shadow:0 0 8px -1px var(--accent)}
+  .d2-now-line::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px -1px var(--accent);margin-left:14px}
+  .d2-day-divider{grid-column:1/-1;font-size:9px;color:var(--accent);font-weight:600;letter-spacing:0.16em;text-transform:uppercase;padding:12px 0 8px;border-top:1px solid var(--rule);margin-top:6px;text-align:center}
+  .d2-day-divider.dim{color:var(--tertiary)}
+</style>
+</head>
+<body data-checkpoint="page">
+
+<div class="page">
+
+  <header class="doc-header" data-checkpoint="header">
+    <div>
+      <div class="brand">
+        <svg viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.06"/>
+          <circle cx="100" cy="40" r="14" fill="#FFD6CC"/>
+          <circle cx="160" cy="100" r="14" fill="#FFD6CC"/>
+          <circle cx="100" cy="160" r="14" fill="#FFD6CC"/>
+          <circle cx="40" cy="100" r="14" fill="#FFD6CC"/>
+          <circle cx="100" cy="100" r="14" fill="#FFD6CC"/>
+        </svg>
+        <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+      </div>
+      <div class="crumb" data-checkpoint="text">Surface · Menu-bar popover</div>
+      <h1 data-checkpoint="text">Upcoming events · Today + Tomorrow</h1>
+    </div>
+    <div class="meta" data-checkpoint="text">380px wide · 25-event cap · grouped by day · anchored under status item</div>
+  </header>
+
+  <!-- SCENARIO 1: ACTIVE & EMPTY SIDE BY SIDE -->
+  <section class="scenario" data-checkpoint="scenario-main">
+    <div class="scenario-head">
+      <h2 data-checkpoint="text"><span class="num">1</span>Active vs empty</h2>
+      <span class="tag" data-checkpoint="text">Two states under the menu bar</span>
+    </div>
+
+    <div class="compare-grid">
+
+      <!-- LEFT: ACTIVE -->
+      <div class="stage" data-checkpoint="stage-active">
+        <div class="menubar" data-checkpoint="menubar-active">
+          <span class="apple"></span>
+          <span class="app-menu">
+            <span class="item-bold" data-checkpoint="text">Finder</span>
+            <span data-checkpoint="text">File</span>
+            <span data-checkpoint="text">Edit</span>
+            <span data-checkpoint="text">View</span>
+            <span data-checkpoint="text">Go</span>
+            <span data-checkpoint="text">Window</span>
+            <span data-checkpoint="text">Help</span>
+          </span>
+          <span class="right">
+            <span class="status-item-nudgebar" data-checkpoint="status-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+              <span data-checkpoint="text">Quarterly Review · in 5 min</span>
+            </span>
+            <span class="sys-icons">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="6" width="16" height="12" rx="2"/><line x1="20" y1="10" x2="20" y2="14"/><line x1="22" y1="11" x2="22" y2="13"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12a7 7 0 0 1 14 0"/><path d="M8 15a4 4 0 0 1 8 0"/><circle cx="12" cy="18" r="1.4" fill="currentColor"/></svg>
+            </span>
+            <span data-checkpoint="text">9:55 AM</span>
+          </span>
+        </div>
+
+        <div class="popover-anchor" data-checkpoint="popover-anchor-active">
+          <div class="popover-arrow"></div>
+          <div class="popover" data-checkpoint="popover-active">
+            <div class="pop-header">
+              <div class="title">
+                <svg viewBox="0 0 200 200">
+                  <circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.10"/>
+                  <circle cx="100" cy="40" r="14" fill="#FFD6CC"/>
+                  <circle cx="160" cy="100" r="14" fill="#FFD6CC"/>
+                  <circle cx="100" cy="160" r="14" fill="#FFD6CC"/>
+                  <circle cx="40" cy="100" r="14" fill="#FFD6CC"/>
+                  <circle cx="100" cy="100" r="14" fill="#FFD6CC"/>
+                </svg>
+                <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+              </div>
+              <span class="count" data-checkpoint="text">7 upcoming</span>
+            </div>
+
+            <div class="section-head">
+              <span class="label" data-checkpoint="text">Today</span>
+              <span class="date" data-checkpoint="text">Wed · Oct 23</span>
+            </div>
+            <div class="event-list" data-checkpoint="list-today">
+              <div class="event-row now" data-checkpoint="row-today-1" style="--cal-color:#6BA3E6">
+                <span class="dot"></span>
+                <span class="time" data-checkpoint="text">10:00 AM</span>
+                <div class="body">
+                  <div class="title" data-checkpoint="text">Quarterly Review · Engineering Org</div>
+                  <div class="meta" data-checkpoint="text">1h · with Sarah Chen · <span class="lead">in 5 min</span></div>
+                </div>
+                <span class="conf zoom" data-checkpoint="text">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>
+                  Zoom
+                </span>
+              </div>
+              <div class="event-row" data-checkpoint="row-today-2" style="--cal-color:#6BA3E6">
+                <span class="dot"></span>
+                <span class="time" data-checkpoint="text">10:00 AM</span>
+                <div class="body">
+                  <div class="title" data-checkpoint="text">Sync with Sarah · 1:1</div>
+                  <div class="meta" data-checkpoint="text">30 min · with Sarah Chen</div>
+                </div>
+                <span class="conf meet" data-checkpoint="text">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>
+                  Meet
+                </span>
+              </div>
+              <div class="event-row" data-checkpoint="row-today-3" style="--cal-color:#C485D6">
+                <span class="dot"></span>
+                <span class="time" data-checkpoint="text">10:05 AM</span>
+                <div class="body">
+                  <div class="title" data-checkpoint="text">Design Critique · Mobile Squad</div>
+                  <div class="meta" data-checkpoint="text">45 min · with Alex Park</div>
+                </div>
+                <span class="conf loc" data-checkpoint="text">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  Studio 3
+                </span>
+              </div>
+              <div class="event-row" data-checkpoint="row-today-4" style="--cal-color:#E29F45">
+                <span class="dot"></span>
+                <span class="time" data-checkpoint="text">1:00 PM</span>
+                <div class="body">
+                  <div class="title" data-checkpoint="text">Lunch with Mom</div>
+                  <div class="meta" data-checkpoint="text">1h</div>
+                </div>
+                <span class="conf loc" data-checkpoint="text">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  Tartine
+                </span>
+              </div>
+              <div class="event-row" data-checkpoint="row-today-5" style="--cal-color:#6BA3E6">
+                <span class="dot"></span>
+                <span class="time" data-checkpoint="text">3:30 PM</span>
+                <div class="body">
+                  <div class="title" data-checkpoint="text">Performance review · Self</div>
+                  <div class="meta" data-checkpoint="text">30 min</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-head">
+              <span class="label dim" data-checkpoint="text">Tomorrow</span>
+              <span class="date" data-checkpoint="text">Thu · Oct 24</span>
+            </div>
+            <div class="event-list" data-checkpoint="list-tomorrow">
+              <div class="event-row" data-checkpoint="row-tom-1" style="--cal-color:#6BA3E6">
+                <span class="dot"></span>
+                <span class="time" data-checkpoint="text">9:00 AM</span>
+                <div class="body">
+                  <div class="title" data-checkpoint="text">Eng Standup</div>
+                  <div class="meta" data-checkpoint="text">15 min · recurring</div>
+                </div>
+                <span class="conf zoom" data-checkpoint="text">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>
+                  Zoom
+                </span>
+              </div>
+              <div class="event-row" data-checkpoint="row-tom-2" style="--cal-color:#C485D6">
+                <span class="dot"></span>
+                <span class="time" data-checkpoint="text">11:00 AM</span>
+                <div class="body">
+                  <div class="title" data-checkpoint="text">Brand workshop · Soft Pastel</div>
+                  <div class="meta" data-checkpoint="text">2h · with Sage Park</div>
+                </div>
+                <span class="conf loc" data-checkpoint="text">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  Studio 1
+                </span>
+              </div>
+            </div>
+
+            <div class="pop-footer" data-checkpoint="popover-footer">
+              <div class="toggle-row" data-checkpoint="toggle-fs">
+                <div class="left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+                  <span class="name" data-checkpoint="text">Full-screen alerts</span>
+                </div>
+                <span class="switch on"></span>
+              </div>
+              <div class="toggle-row" data-checkpoint="toggle-lead">
+                <div class="left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="2" x2="14" y2="2"/><circle cx="12" cy="13" r="8"/><line x1="12" y1="13" x2="12" y2="9"/><line x1="12" y1="13" x2="15" y2="13"/></svg>
+                  <span class="name" data-checkpoint="text">Lead time</span>
+                </div>
+                <span class="stepper">
+                  <button data-checkpoint="text">−</button>
+                  <span class="val" data-checkpoint="text">5 min</span>
+                  <button data-checkpoint="text">+</button>
+                </span>
+              </div>
+              <div class="settings-link" data-checkpoint="settings-link">
+                <div class="left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <span data-checkpoint="text">Open Settings</span>
+                </div>
+                <span class="chev" data-checkpoint="text">→</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: EMPTY -->
+      <div class="stage" data-checkpoint="stage-empty">
+        <div class="menubar" data-checkpoint="menubar-empty">
+          <span class="apple"></span>
+          <span class="app-menu">
+            <span class="item-bold" data-checkpoint="text">Finder</span>
+            <span data-checkpoint="text">File</span>
+            <span data-checkpoint="text">Edit</span>
+            <span data-checkpoint="text">View</span>
+            <span data-checkpoint="text">Go</span>
+            <span data-checkpoint="text">Window</span>
+            <span data-checkpoint="text">Help</span>
+          </span>
+          <span class="right">
+            <span class="status-item-nudgebar empty" data-checkpoint="status-item-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+            </span>
+            <span class="sys-icons">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="6" width="16" height="12" rx="2"/><line x1="20" y1="10" x2="20" y2="14"/><line x1="22" y1="11" x2="22" y2="13"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12a7 7 0 0 1 14 0"/><path d="M8 15a4 4 0 0 1 8 0"/><circle cx="12" cy="18" r="1.4" fill="currentColor"/></svg>
+            </span>
+            <span data-checkpoint="text">7:42 PM</span>
+          </span>
+        </div>
+
+        <div class="popover-anchor" data-checkpoint="popover-anchor-empty" style="right:88px">
+          <div class="popover-arrow"></div>
+          <div class="popover" data-checkpoint="popover-empty">
+            <div class="pop-header">
+              <div class="title">
+                <svg viewBox="0 0 200 200">
+                  <circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.10"/>
+                  <circle cx="100" cy="40" r="14" fill="#FFD6CC"/>
+                  <circle cx="160" cy="100" r="14" fill="#FFD6CC"/>
+                  <circle cx="100" cy="160" r="14" fill="#FFD6CC"/>
+                  <circle cx="40" cy="100" r="14" fill="#FFD6CC"/>
+                  <circle cx="100" cy="100" r="14" fill="#FFD6CC"/>
+                </svg>
+                <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+              </div>
+              <span class="count" data-checkpoint="text">All clear</span>
+            </div>
+
+            <div class="empty" data-checkpoint="empty-state">
+              <div class="glyph">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+              </div>
+              <div class="head" data-checkpoint="text">All clear</div>
+              <div class="sub" data-checkpoint="text">No events between now and end of tomorrow. We'll surface the next one here automatically.</div>
+            </div>
+
+            <div class="pop-footer" data-checkpoint="popover-footer-empty">
+              <div class="toggle-row" data-checkpoint="toggle-fs-empty">
+                <div class="left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+                  <span class="name" data-checkpoint="text">Full-screen alerts</span>
+                </div>
+                <span class="switch on"></span>
+              </div>
+              <div class="toggle-row" data-checkpoint="toggle-lead-empty">
+                <div class="left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="2" x2="14" y2="2"/><circle cx="12" cy="13" r="8"/><line x1="12" y1="13" x2="12" y2="9"/><line x1="12" y1="13" x2="15" y2="13"/></svg>
+                  <span class="name" data-checkpoint="text">Lead time</span>
+                </div>
+                <span class="stepper">
+                  <button data-checkpoint="text">−</button>
+                  <span class="val" data-checkpoint="text">5 min</span>
+                  <button data-checkpoint="text">+</button>
+                </span>
+              </div>
+              <div class="settings-link" data-checkpoint="settings-link-empty">
+                <div class="left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <span data-checkpoint="text">Open Settings</span>
+                </div>
+                <span class="chev" data-checkpoint="text">→</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SCENARIO 2: ALTERNATIVE VARIANTS -->
+  <section class="scenario" data-checkpoint="scenario-variants">
+    <div class="scenario-head">
+      <h2 data-checkpoint="text"><span class="num">2</span>Alternative variants</h2>
+      <span class="tag" data-checkpoint="text">Same data · four different organizing principles</span>
+    </div>
+
+    <div class="variants-grid">
+
+      <!-- ===== VARIANT A — CURRENT (LIST + CHIPS) ===== -->
+      <div class="variant-cell" data-checkpoint="variant-A">
+        <div class="variant-label" data-checkpoint="text"><span class="pill">A</span>List + chips<span class="desc">— scannable, action chips on right (current default)</span></div>
+        <div class="pop-frame">
+          <div class="popover" style="margin-top:0">
+            <div class="pop-header">
+              <div class="title">
+                <svg viewBox="0 0 200 200">
+                  <circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.10"/>
+                  <circle cx="100" cy="40" r="14" fill="#FFD6CC"/>
+                  <circle cx="160" cy="100" r="14" fill="#FFD6CC"/>
+                  <circle cx="100" cy="160" r="14" fill="#FFD6CC"/>
+                  <circle cx="40" cy="100" r="14" fill="#FFD6CC"/>
+                  <circle cx="100" cy="100" r="14" fill="#FFD6CC"/>
+                </svg>
+                <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+              </div>
+              <span class="count" data-checkpoint="text">5 upcoming</span>
+            </div>
+            <div class="section-head">
+              <span class="label" data-checkpoint="text">Today</span>
+              <span class="date" data-checkpoint="text">Wed · Oct 23</span>
+            </div>
+            <div class="event-list">
+              <div class="event-row now" style="--cal-color:#6BA3E6">
+                <span class="dot"></span>
+                <span class="time" data-checkpoint="text">10:00 AM</span>
+                <div class="body">
+                  <div class="title" data-checkpoint="text">Quarterly Review</div>
+                  <div class="meta" data-checkpoint="text">1h · <span class="lead">in 5 min</span></div>
+                </div>
+                <span class="conf zoom" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>Zoom</span>
+              </div>
+              <div class="event-row" style="--cal-color:#6BA3E6">
+                <span class="dot"></span>
+                <span class="time" data-checkpoint="text">10:00 AM</span>
+                <div class="body">
+                  <div class="title" data-checkpoint="text">Sync with Sarah</div>
+                  <div class="meta" data-checkpoint="text">30 min</div>
+                </div>
+                <span class="conf meet" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>Meet</span>
+              </div>
+              <div class="event-row" style="--cal-color:#C485D6">
+                <span class="dot"></span>
+                <span class="time" data-checkpoint="text">10:05 AM</span>
+                <div class="body">
+                  <div class="title" data-checkpoint="text">Design Critique</div>
+                  <div class="meta" data-checkpoint="text">45 min</div>
+                </div>
+                <span class="conf loc" data-checkpoint="text">Studio 3</span>
+              </div>
+            </div>
+            <div class="section-head">
+              <span class="label dim" data-checkpoint="text">Tomorrow</span>
+              <span class="date" data-checkpoint="text">Thu · Oct 24</span>
+            </div>
+            <div class="event-list">
+              <div class="event-row" style="--cal-color:#6BA3E6">
+                <span class="dot"></span>
+                <span class="time" data-checkpoint="text">9:00 AM</span>
+                <div class="body">
+                  <div class="title" data-checkpoint="text">Eng Standup</div>
+                  <div class="meta" data-checkpoint="text">15 min</div>
+                </div>
+                <span class="conf zoom" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>Zoom</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== VARIANT B — HERO-FIRST ===== -->
+      <div class="variant-cell" data-checkpoint="variant-B">
+        <div class="variant-label" data-checkpoint="text"><span class="pill">B</span>Hero-first<span class="desc">— next event prominent with Join, rest collapsed below</span></div>
+        <div class="pop-frame">
+          <div class="popover" style="margin-top:0">
+            <div class="pop-header">
+              <div class="title">
+                <svg viewBox="0 0 200 200">
+                  <circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.10"/>
+                  <circle cx="100" cy="40" r="14" fill="#FFD6CC"/>
+                  <circle cx="160" cy="100" r="14" fill="#FFD6CC"/>
+                  <circle cx="100" cy="160" r="14" fill="#FFD6CC"/>
+                  <circle cx="40" cy="100" r="14" fill="#FFD6CC"/>
+                  <circle cx="100" cy="100" r="14" fill="#FFD6CC"/>
+                </svg>
+                <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+              </div>
+              <span class="count" data-checkpoint="text">Next up</span>
+            </div>
+
+            <div class="pop-hero-card" data-checkpoint="hero-card" style="--cal-color:#6BA3E6">
+              <div class="head">
+                <span class="badge" data-checkpoint="text">Now firing</span>
+                <span class="time-lead" data-checkpoint="text">10:00 AM · in 5 min</span>
+              </div>
+              <div class="h-title" data-checkpoint="text">Quarterly Review · Engineering Org</div>
+              <div class="h-meta" data-checkpoint="text">1h<span class="sep">·</span>with Sarah Chen<span class="sep">·</span>Zoom</div>
+              <div class="h-actions">
+                <button class="btn-mini ghost" data-checkpoint="text">Snooze</button>
+                <button class="btn-mini ghost" data-checkpoint="text">Dismiss</button>
+                <button class="btn-mini primary" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>Join</button>
+              </div>
+            </div>
+
+            <div class="pop-mini-list">
+              <div class="mini-head" data-checkpoint="text">Later today · 3 more</div>
+              <div class="pop-mini-row" style="--cal-color:#6BA3E6">
+                <span class="dot"></span>
+                <span class="t" data-checkpoint="text">10:00</span>
+                <span class="tt" data-checkpoint="text">Sync with Sarah · 1:1</span>
+                <span class="cnf" data-checkpoint="text">Meet</span>
+              </div>
+              <div class="pop-mini-row" style="--cal-color:#C485D6">
+                <span class="dot"></span>
+                <span class="t" data-checkpoint="text">10:05</span>
+                <span class="tt" data-checkpoint="text">Design Critique · Mobile Squad</span>
+                <span class="cnf" data-checkpoint="text">Studio 3</span>
+              </div>
+              <div class="pop-mini-row" style="--cal-color:#E29F45">
+                <span class="dot"></span>
+                <span class="t" data-checkpoint="text">1:00 PM</span>
+                <span class="tt" data-checkpoint="text">Lunch with Mom</span>
+                <span class="cnf" data-checkpoint="text">Tartine</span>
+              </div>
+              <div class="mini-head" data-checkpoint="text">Tomorrow · 2 events</div>
+              <div class="pop-mini-row" style="--cal-color:#6BA3E6">
+                <span class="dot"></span>
+                <span class="t" data-checkpoint="text">9:00</span>
+                <span class="tt" data-checkpoint="text">Eng Standup</span>
+                <span class="cnf" data-checkpoint="text">Zoom</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== VARIANT C — CARD STACK (airy) ===== -->
+      <div class="variant-cell" data-checkpoint="variant-C">
+        <div class="variant-label" data-checkpoint="text"><span class="pill">C</span>Card stack<span class="desc">— each event a discrete card, more air, less list-y</span></div>
+        <div class="pop-frame">
+          <div class="popover" style="margin-top:0">
+            <div class="pop-header">
+              <div class="title">
+                <svg viewBox="0 0 200 200">
+                  <circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.10"/>
+                  <circle cx="100" cy="40" r="14" fill="#FFD6CC"/>
+                  <circle cx="160" cy="100" r="14" fill="#FFD6CC"/>
+                  <circle cx="100" cy="160" r="14" fill="#FFD6CC"/>
+                  <circle cx="40" cy="100" r="14" fill="#FFD6CC"/>
+                  <circle cx="100" cy="100" r="14" fill="#FFD6CC"/>
+                </svg>
+                <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+              </div>
+              <span class="count" data-checkpoint="text">5 upcoming</span>
+            </div>
+            <div class="pop-card-stack">
+              <div class="day-pin" data-checkpoint="text">Today · Wed Oct 23</div>
+              <div class="pop-event-card" style="--cal-color:#6BA3E6">
+                <div class="left">
+                  <div class="row1">
+                    <span class="time" data-checkpoint="text">10:00 AM</span>
+                    <span class="now-badge" data-checkpoint="text">Now</span>
+                  </div>
+                  <div class="ct" data-checkpoint="text">Quarterly Review · Engineering Org</div>
+                  <div class="cm" data-checkpoint="text">1h<span class="sep">·</span>with Sarah Chen</div>
+                </div>
+                <div class="right-action">
+                  <button class="btn-join-c" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>Join</button>
+                </div>
+              </div>
+              <div class="pop-event-card" style="--cal-color:#6BA3E6">
+                <div class="left">
+                  <div class="row1"><span class="time" data-checkpoint="text">10:00 AM</span></div>
+                  <div class="ct" data-checkpoint="text">Sync with Sarah · 1:1</div>
+                  <div class="cm" data-checkpoint="text">30 min<span class="sep">·</span>Meet</div>
+                </div>
+                <div class="right-action">
+                  <button class="btn-join-c" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>Join</button>
+                </div>
+              </div>
+              <div class="pop-event-card" style="--cal-color:#C485D6">
+                <div class="left">
+                  <div class="row1"><span class="time" data-checkpoint="text">10:05 AM</span></div>
+                  <div class="ct" data-checkpoint="text">Design Critique · Mobile Squad</div>
+                  <div class="cm" data-checkpoint="text">45 min<span class="sep">·</span>Studio 3</div>
+                </div>
+              </div>
+              <div class="day-pin dim" data-checkpoint="text">Tomorrow · Thu Oct 24</div>
+              <div class="pop-event-card" style="--cal-color:#6BA3E6">
+                <div class="left">
+                  <div class="row1"><span class="time" data-checkpoint="text">9:00 AM</span></div>
+                  <div class="ct" data-checkpoint="text">Eng Standup</div>
+                  <div class="cm" data-checkpoint="text">15 min<span class="sep">·</span>Zoom</div>
+                </div>
+                <div class="right-action">
+                  <button class="btn-join-c" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>Join</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== VARIANT D — TIMELINE / AGENDA ===== -->
+      <div class="variant-cell" data-checkpoint="variant-D">
+        <div class="variant-label" data-checkpoint="text"><span class="pill">D</span>Timeline agenda<span class="desc">— spatial · time-of-day visible at a glance</span></div>
+        <div class="pop-frame">
+          <div class="popover" style="margin-top:0">
+            <div class="pop-header">
+              <div class="title">
+                <svg viewBox="0 0 200 200">
+                  <circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.10"/>
+                  <circle cx="100" cy="40" r="14" fill="#FFD6CC"/>
+                  <circle cx="160" cy="100" r="14" fill="#FFD6CC"/>
+                  <circle cx="100" cy="160" r="14" fill="#FFD6CC"/>
+                  <circle cx="40" cy="100" r="14" fill="#FFD6CC"/>
+                  <circle cx="100" cy="100" r="14" fill="#FFD6CC"/>
+                </svg>
+                <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+              </div>
+              <span class="count" data-checkpoint="text">5 upcoming</span>
+            </div>
+            <div class="pop-timeline">
+              <div class="tl-day-divider" style="margin-top:0;border-top:none;padding-top:4px" data-checkpoint="text">Today · Wed Oct 23</div>
+              <div class="tl-hour" data-checkpoint="text">10 AM</div>
+              <div class="tl-track now">
+                <div class="tl-event now" style="--cal-color:#6BA3E6">
+                  <div class="te-title" data-checkpoint="text">Quarterly Review</div>
+                  <div class="te-meta"><span data-checkpoint="text">1h · in 5 min</span><span class="conf-mini zoom" data-checkpoint="text">Zoom</span></div>
+                </div>
+              </div>
+              <div class="tl-hour"></div>
+              <div class="tl-track">
+                <div class="tl-event" style="--cal-color:#6BA3E6">
+                  <div class="te-title" data-checkpoint="text">Sync with Sarah · 1:1</div>
+                  <div class="te-meta"><span data-checkpoint="text">30 min</span><span class="conf-mini meet" data-checkpoint="text">Meet</span></div>
+                </div>
+              </div>
+              <div class="tl-hour"></div>
+              <div class="tl-track">
+                <div class="tl-event" style="--cal-color:#C485D6">
+                  <div class="te-title" data-checkpoint="text">Design Critique</div>
+                  <div class="te-meta"><span data-checkpoint="text">45 min</span><span class="conf-mini loc" data-checkpoint="text">Studio 3</span></div>
+                </div>
+              </div>
+              <div class="tl-hour" data-checkpoint="text">1 PM</div>
+              <div class="tl-track">
+                <div class="tl-event" style="--cal-color:#E29F45">
+                  <div class="te-title" data-checkpoint="text">Lunch with Mom</div>
+                  <div class="te-meta"><span data-checkpoint="text">1h</span><span class="conf-mini loc" data-checkpoint="text">Tartine</span></div>
+                </div>
+              </div>
+              <div class="tl-day-divider dim" data-checkpoint="text">Tomorrow · Thu Oct 24</div>
+              <div class="tl-hour" data-checkpoint="text">9 AM</div>
+              <div class="tl-track">
+                <div class="tl-event" style="--cal-color:#6BA3E6">
+                  <div class="te-title" data-checkpoint="text">Eng Standup</div>
+                  <div class="te-meta"><span data-checkpoint="text">15 min</span><span class="conf-mini zoom" data-checkpoint="text">Zoom</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SCENARIO 3: SUB-VARIANTS OF A, B, D -->
+  <section class="scenario" data-checkpoint="scenario-subvariants">
+    <div class="scenario-head">
+      <h2 data-checkpoint="text"><span class="num">3</span>Sub-variants of A · B · D</h2>
+      <span class="tag" data-checkpoint="text">Pushing density, action, and time-spatiality further</span>
+    </div>
+
+    <!-- A SUB-VARIANTS -->
+    <div class="subvariant-group" data-checkpoint="group-A">
+      <h3 data-checkpoint="text"><span class="parent">A</span>List + chips · density and grouping<span class="hint">— how lean and how organized?</span></h3>
+      <div class="variants-grid">
+
+        <!-- A1: ULTRA-DENSE -->
+        <div class="variant-cell" data-checkpoint="variant-A1">
+          <div class="variant-label" data-checkpoint="text"><span class="pill">A1</span>Ultra-dense<span class="desc">— single line · 32px rows · maximum events visible</span></div>
+          <div class="pop-frame">
+            <div class="popover" style="margin-top:0">
+              <div class="pop-header">
+                <div class="title">
+                  <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.10"/><circle cx="100" cy="40" r="14" fill="#FFD6CC"/><circle cx="160" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="160" r="14" fill="#FFD6CC"/><circle cx="40" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="100" r="14" fill="#FFD6CC"/></svg>
+                  <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+                </div>
+                <span class="count" data-checkpoint="text">7 upcoming</span>
+              </div>
+              <div class="a1-list" data-checkpoint="a1-list">
+                <div class="a1-section" data-checkpoint="text">Today · Wed Oct 23</div>
+                <div class="a1-row now" style="--cal-color:#6BA3E6"><span class="dot"></span><span class="t" data-checkpoint="text">10:00</span><span class="tt" data-checkpoint="text">Quarterly Review · Engineering Org</span><span class="c zoom" data-checkpoint="text">Zoom</span></div>
+                <div class="a1-row" style="--cal-color:#6BA3E6"><span class="dot"></span><span class="t" data-checkpoint="text">10:00</span><span class="tt" data-checkpoint="text">Sync with Sarah · 1:1</span><span class="c meet" data-checkpoint="text">Meet</span></div>
+                <div class="a1-row" style="--cal-color:#C485D6"><span class="dot"></span><span class="t" data-checkpoint="text">10:05</span><span class="tt" data-checkpoint="text">Design Critique · Mobile Squad</span><span class="c" data-checkpoint="text">Studio 3</span></div>
+                <div class="a1-row" style="--cal-color:#E29F45"><span class="dot"></span><span class="t" data-checkpoint="text">1:00</span><span class="tt" data-checkpoint="text">Lunch with Mom</span><span class="c" data-checkpoint="text">Tartine</span></div>
+                <div class="a1-row" style="--cal-color:#6BA3E6"><span class="dot"></span><span class="t" data-checkpoint="text">3:30</span><span class="tt" data-checkpoint="text">Performance review · Self</span><span class="c" data-checkpoint="text">—</span></div>
+                <div class="a1-section dim" data-checkpoint="text">Tomorrow · Thu Oct 24</div>
+                <div class="a1-row" style="--cal-color:#6BA3E6"><span class="dot"></span><span class="t" data-checkpoint="text">9:00</span><span class="tt" data-checkpoint="text">Eng Standup</span><span class="c zoom" data-checkpoint="text">Zoom</span></div>
+                <div class="a1-row" style="--cal-color:#C485D6"><span class="dot"></span><span class="t" data-checkpoint="text">11:00</span><span class="tt" data-checkpoint="text">Brand workshop · Soft Pastel</span><span class="c" data-checkpoint="text">Studio 1</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- A2: GROUPED BY CALENDAR -->
+        <div class="variant-cell" data-checkpoint="variant-A2">
+          <div class="variant-label" data-checkpoint="text"><span class="pill">A2</span>Grouped by calendar<span class="desc">— buckets by source · day shown as a chip</span></div>
+          <div class="pop-frame">
+            <div class="popover" style="margin-top:0">
+              <div class="pop-header">
+                <div class="title">
+                  <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.10"/><circle cx="100" cy="40" r="14" fill="#FFD6CC"/><circle cx="160" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="160" r="14" fill="#FFD6CC"/><circle cx="40" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="100" r="14" fill="#FFD6CC"/></svg>
+                  <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+                </div>
+                <span class="count" data-checkpoint="text">7 upcoming</span>
+              </div>
+              <div class="a2-list" data-checkpoint="a2-list">
+                <div class="a2-cal-head" style="--cal-color:#6BA3E6">
+                  <div class="cal-name"><span class="swatch"></span><span data-checkpoint="text">Work</span></div>
+                  <span class="cal-count" data-checkpoint="text">4 events</span>
+                </div>
+                <div class="a2-row now"><span class="t" data-checkpoint="text">10:00</span><div class="body"><div class="ct" data-checkpoint="text">Quarterly Review · Engineering Org</div><div class="cm" data-checkpoint="text">1h · in 5 min · Zoom</div></div><span class="day-chip" data-checkpoint="text">Today</span></div>
+                <div class="a2-row"><span class="t" data-checkpoint="text">10:00</span><div class="body"><div class="ct" data-checkpoint="text">Sync with Sarah · 1:1</div><div class="cm" data-checkpoint="text">30 min · Meet</div></div><span class="day-chip" data-checkpoint="text">Today</span></div>
+                <div class="a2-row"><span class="t" data-checkpoint="text">3:30</span><div class="body"><div class="ct" data-checkpoint="text">Performance review · Self</div><div class="cm" data-checkpoint="text">30 min</div></div><span class="day-chip" data-checkpoint="text">Today</span></div>
+                <div class="a2-row"><span class="t" data-checkpoint="text">9:00</span><div class="body"><div class="ct" data-checkpoint="text">Eng Standup</div><div class="cm" data-checkpoint="text">15 min · Zoom</div></div><span class="day-chip tom" data-checkpoint="text">Tom</span></div>
+
+                <div class="a2-cal-head" style="--cal-color:#C485D6">
+                  <div class="cal-name"><span class="swatch"></span><span data-checkpoint="text">Design</span></div>
+                  <span class="cal-count" data-checkpoint="text">2 events</span>
+                </div>
+                <div class="a2-row"><span class="t" data-checkpoint="text">10:05</span><div class="body"><div class="ct" data-checkpoint="text">Design Critique · Mobile Squad</div><div class="cm" data-checkpoint="text">45 min · Studio 3</div></div><span class="day-chip" data-checkpoint="text">Today</span></div>
+                <div class="a2-row"><span class="t" data-checkpoint="text">11:00</span><div class="body"><div class="ct" data-checkpoint="text">Brand workshop · Soft Pastel</div><div class="cm" data-checkpoint="text">2h · Studio 1</div></div><span class="day-chip tom" data-checkpoint="text">Tom</span></div>
+
+                <div class="a2-cal-head" style="--cal-color:#E29F45">
+                  <div class="cal-name"><span class="swatch"></span><span data-checkpoint="text">Personal</span></div>
+                  <span class="cal-count" data-checkpoint="text">1 event</span>
+                </div>
+                <div class="a2-row"><span class="t" data-checkpoint="text">1:00</span><div class="body"><div class="ct" data-checkpoint="text">Lunch with Mom</div><div class="cm" data-checkpoint="text">1h · Tartine</div></div><span class="day-chip" data-checkpoint="text">Today</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- B SUB-VARIANTS -->
+    <div class="subvariant-group" data-checkpoint="group-B">
+      <h3 data-checkpoint="text"><span class="parent">B</span>Hero-first · ring or pair<span class="hint">— what's the right "next-up" treatment?</span></h3>
+      <div class="variants-grid">
+
+        <!-- B1: HERO WITH COUNTDOWN RING -->
+        <div class="variant-cell" data-checkpoint="variant-B1">
+          <div class="variant-label" data-checkpoint="text"><span class="pill">B1</span>Hero with countdown ring<span class="desc">— visual continuity with the alert · ring pulses</span></div>
+          <div class="pop-frame">
+            <div class="popover" style="margin-top:0">
+              <div class="pop-header">
+                <div class="title">
+                  <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.10"/><circle cx="100" cy="40" r="14" fill="#FFD6CC"/><circle cx="160" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="160" r="14" fill="#FFD6CC"/><circle cx="40" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="100" r="14" fill="#FFD6CC"/></svg>
+                  <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+                </div>
+                <span class="count" data-checkpoint="text">Next up</span>
+              </div>
+              <div class="b1-hero" data-checkpoint="b1-hero" style="--cal-color:#6BA3E6">
+                <div class="b1-body">
+                  <span class="b1-badge" data-checkpoint="text">Now firing</span>
+                  <div class="b1-title" data-checkpoint="text">Quarterly Review · Engineering Org</div>
+                  <div class="b1-meta" data-checkpoint="text">10:00 AM<span class="sep">·</span>1h<span class="sep">·</span>Sarah Chen<span class="sep">·</span>Zoom</div>
+                  <div class="b1-actions">
+                    <button class="btn-mini ghost" data-checkpoint="text">Snooze</button>
+                    <button class="btn-mini ghost" data-checkpoint="text">Dismiss</button>
+                    <button class="btn-mini primary" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>Join</button>
+                  </div>
+                </div>
+                <div class="b1-ring">
+                  <svg viewBox="0 0 54 54"><circle class="track" cx="27" cy="27" r="23" stroke-width="4"/><circle class="progress" cx="27" cy="27" r="23" stroke-width="4" stroke-dasharray="144.5" stroke-dashoffset="36"/></svg>
+                  <div class="ring-text"><div><div class="small" data-checkpoint="text">In</div><span data-checkpoint="text">5m</span></div></div>
+                </div>
+              </div>
+              <div class="pop-mini-list">
+                <div class="mini-head" data-checkpoint="text">Later today · 3 more</div>
+                <div class="pop-mini-row" style="--cal-color:#6BA3E6"><span class="dot"></span><span class="t" data-checkpoint="text">10:00</span><span class="tt" data-checkpoint="text">Sync with Sarah · 1:1</span><span class="cnf" data-checkpoint="text">Meet</span></div>
+                <div class="pop-mini-row" style="--cal-color:#C485D6"><span class="dot"></span><span class="t" data-checkpoint="text">10:05</span><span class="tt" data-checkpoint="text">Design Critique</span><span class="cnf" data-checkpoint="text">Studio 3</span></div>
+                <div class="pop-mini-row" style="--cal-color:#E29F45"><span class="dot"></span><span class="t" data-checkpoint="text">1:00 PM</span><span class="tt" data-checkpoint="text">Lunch with Mom</span><span class="cnf" data-checkpoint="text">Tartine</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- B2: TWO-HERO SIDE-BY-SIDE -->
+        <div class="variant-cell" data-checkpoint="variant-B2">
+          <div class="variant-label" data-checkpoint="text"><span class="pill">B2</span>Two-hero side-by-side<span class="desc">— next + next-next · both with Join · less single-event tunnel vision</span></div>
+          <div class="pop-frame">
+            <div class="popover" style="margin-top:0">
+              <div class="pop-header">
+                <div class="title">
+                  <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.10"/><circle cx="100" cy="40" r="14" fill="#FFD6CC"/><circle cx="160" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="160" r="14" fill="#FFD6CC"/><circle cx="40" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="100" r="14" fill="#FFD6CC"/></svg>
+                  <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+                </div>
+                <span class="count" data-checkpoint="text">Next 2</span>
+              </div>
+              <div class="b2-pair" data-checkpoint="b2-pair">
+                <div class="b2-card next" style="--cal-color:#6BA3E6">
+                  <span class="b2-tag" data-checkpoint="text">Now</span>
+                  <span class="b2-time" data-checkpoint="text">10:00 · in 5 min</span>
+                  <div class="b2-title" data-checkpoint="text">Quarterly Review · Engineering Org</div>
+                  <div class="b2-meta" data-checkpoint="text">1h · with Sarah Chen · Zoom</div>
+                  <button class="b2-join" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>Join</button>
+                </div>
+                <div class="b2-card then" style="--cal-color:#6BA3E6">
+                  <span class="b2-tag" data-checkpoint="text">Then</span>
+                  <span class="b2-time" data-checkpoint="text">10:00 · same time</span>
+                  <div class="b2-title" data-checkpoint="text">Sync with Sarah · 1:1</div>
+                  <div class="b2-meta" data-checkpoint="text">30 min · Meet</div>
+                  <button class="b2-join" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>Join</button>
+                </div>
+              </div>
+              <div class="pop-mini-list">
+                <div class="mini-head" data-checkpoint="text">After that · 3 today, 2 tomorrow</div>
+                <div class="pop-mini-row" style="--cal-color:#C485D6"><span class="dot"></span><span class="t" data-checkpoint="text">10:05</span><span class="tt" data-checkpoint="text">Design Critique · Mobile Squad</span><span class="cnf" data-checkpoint="text">Studio 3</span></div>
+                <div class="pop-mini-row" style="--cal-color:#E29F45"><span class="dot"></span><span class="t" data-checkpoint="text">1:00 PM</span><span class="tt" data-checkpoint="text">Lunch with Mom</span><span class="cnf" data-checkpoint="text">Tartine</span></div>
+                <div class="pop-mini-row" style="--cal-color:#6BA3E6"><span class="dot"></span><span class="t" data-checkpoint="text">3:30 PM</span><span class="tt" data-checkpoint="text">Performance review</span><span class="cnf" data-checkpoint="text">—</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- D SUB-VARIANTS -->
+    <div class="subvariant-group" data-checkpoint="group-D">
+      <h3 data-checkpoint="text"><span class="parent">D</span>Timeline agenda · compressed or continuous<span class="hint">— how much spatial honesty?</span></h3>
+      <div class="variants-grid">
+
+        <!-- D1: COMPRESSED TIMELINE -->
+        <div class="variant-cell" data-checkpoint="variant-D1">
+          <div class="variant-label" data-checkpoint="text"><span class="pill">D1</span>Compressed timeline<span class="desc">— quiet hours folded · only hours with events shown</span></div>
+          <div class="pop-frame">
+            <div class="popover" style="margin-top:0">
+              <div class="pop-header">
+                <div class="title">
+                  <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.10"/><circle cx="100" cy="40" r="14" fill="#FFD6CC"/><circle cx="160" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="160" r="14" fill="#FFD6CC"/><circle cx="40" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="100" r="14" fill="#FFD6CC"/></svg>
+                  <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+                </div>
+                <span class="count" data-checkpoint="text">5 upcoming</span>
+              </div>
+              <div class="d1-timeline" data-checkpoint="d1-timeline">
+                <div class="d1-day-divider" style="margin-top:0;border-top:none;padding-top:4px" data-checkpoint="text">Today · Wed Oct 23</div>
+                <div class="d1-hour" data-checkpoint="text">10 AM</div>
+                <div class="d1-track now">
+                  <div class="d1-event now" style="--cal-color:#6BA3E6"><div class="te-title" data-checkpoint="text">Quarterly Review</div><div class="te-meta" data-checkpoint="text">1h · Zoom · in 5 min</div></div>
+                </div>
+                <div class="d1-hour"></div>
+                <div class="d1-track">
+                  <div class="d1-event" style="--cal-color:#6BA3E6"><div class="te-title" data-checkpoint="text">Sync with Sarah · 1:1</div><div class="te-meta" data-checkpoint="text">30 min · Meet</div></div>
+                </div>
+                <div class="d1-quiet" data-checkpoint="text">2 hours quiet</div>
+                <div class="d1-hour" data-checkpoint="text">1 PM</div>
+                <div class="d1-track">
+                  <div class="d1-event" style="--cal-color:#E29F45"><div class="te-title" data-checkpoint="text">Lunch with Mom</div><div class="te-meta" data-checkpoint="text">1h · Tartine</div></div>
+                </div>
+                <div class="d1-quiet" data-checkpoint="text">1.5 hours quiet</div>
+                <div class="d1-hour" data-checkpoint="text">3:30 PM</div>
+                <div class="d1-track">
+                  <div class="d1-event" style="--cal-color:#6BA3E6"><div class="te-title" data-checkpoint="text">Performance review</div><div class="te-meta" data-checkpoint="text">30 min</div></div>
+                </div>
+                <div class="d1-day-divider dim" data-checkpoint="text">Tomorrow · Thu Oct 24</div>
+                <div class="d1-hour" data-checkpoint="text">9 AM</div>
+                <div class="d1-track">
+                  <div class="d1-event" style="--cal-color:#6BA3E6"><div class="te-title" data-checkpoint="text">Eng Standup</div><div class="te-meta" data-checkpoint="text">15 min · Zoom</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- D2: CONTINUOUS TIMELINE WITH NOW-LINE -->
+        <div class="variant-cell" data-checkpoint="variant-D2">
+          <div class="variant-label" data-checkpoint="text"><span class="pill">D2</span>Continuous + now-line<span class="desc">— every hour shown · horizontal "now" line cuts across</span></div>
+          <div class="pop-frame">
+            <div class="popover" style="margin-top:0">
+              <div class="pop-header">
+                <div class="title">
+                  <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.10"/><circle cx="100" cy="40" r="14" fill="#FFD6CC"/><circle cx="160" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="160" r="14" fill="#FFD6CC"/><circle cx="40" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="100" r="14" fill="#FFD6CC"/></svg>
+                  <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+                </div>
+                <span class="count" data-checkpoint="text">5 upcoming</span>
+              </div>
+              <div class="d2-timeline" data-checkpoint="d2-timeline">
+                <div class="d2-day-divider" style="margin-top:0;border-top:none;padding-top:4px" data-checkpoint="text">Today · Wed Oct 23</div>
+                <div class="d2-now-line"><span data-checkpoint="text">Now · 9:55</span></div>
+                <div class="d2-hour" data-checkpoint="text">10 AM</div>
+                <div class="d2-track">
+                  <div class="d2-event now" style="--cal-color:#6BA3E6"><span class="te-title" data-checkpoint="text">Quarterly Review</span><span class="te-meta" data-checkpoint="text">Zoom</span></div>
+                </div>
+                <div class="d2-hour" data-checkpoint="text">11 AM</div>
+                <div class="d2-track"><div class="d2-empty" data-checkpoint="text">—</div></div>
+                <div class="d2-hour" data-checkpoint="text">12 PM</div>
+                <div class="d2-track"><div class="d2-empty" data-checkpoint="text">—</div></div>
+                <div class="d2-hour" data-checkpoint="text">1 PM</div>
+                <div class="d2-track">
+                  <div class="d2-event" style="--cal-color:#E29F45"><span class="te-title" data-checkpoint="text">Lunch with Mom</span><span class="te-meta" data-checkpoint="text">Tartine</span></div>
+                </div>
+                <div class="d2-hour" data-checkpoint="text">2 PM</div>
+                <div class="d2-track"><div class="d2-empty" data-checkpoint="text">—</div></div>
+                <div class="d2-hour" data-checkpoint="text">3 PM</div>
+                <div class="d2-track">
+                  <div class="d2-event" style="--cal-color:#6BA3E6"><span class="te-title" data-checkpoint="text">Performance review</span><span class="te-meta" data-checkpoint="text">30m</span></div>
+                </div>
+                <div class="d2-day-divider dim" data-checkpoint="text">Tomorrow · Thu Oct 24</div>
+                <div class="d2-hour" data-checkpoint="text">9 AM</div>
+                <div class="d2-track">
+                  <div class="d2-event" style="--cal-color:#6BA3E6"><span class="te-title" data-checkpoint="text">Eng Standup</span><span class="te-meta" data-checkpoint="text">Zoom</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- SCENARIO 4: HYBRID B2 + D1 -->
+  <section class="scenario" data-checkpoint="scenario-hybrid">
+    <div class="scenario-head">
+      <h2 data-checkpoint="text"><span class="num">4</span>Hybrid · B2 hero pair + D1 compressed timeline</h2>
+      <span class="tag" data-checkpoint="text">Imminent action up top · day shape below</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px">
+
+      <!-- HYBRID -->
+      <div class="variant-cell" data-checkpoint="variant-hybrid">
+        <div class="variant-label" data-checkpoint="text"><span class="pill">A·</span>Hybrid<span class="desc">— next two as actionable heroes, then timeline-shaped digest</span></div>
+        <div class="pop-frame" style="min-height:680px">
+          <div class="popover" style="margin-top:0">
+            <div class="pop-header">
+              <div class="title">
+                <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.10"/><circle cx="100" cy="40" r="14" fill="#FFD6CC"/><circle cx="160" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="160" r="14" fill="#FFD6CC"/><circle cx="40" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="100" r="14" fill="#FFD6CC"/></svg>
+                <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+              </div>
+              <span class="count" data-checkpoint="text">Next 2 · 5 total</span>
+            </div>
+
+            <!-- B2 hero pair -->
+            <div class="b2-pair" data-checkpoint="hybrid-pair">
+              <div class="b2-card next" style="--cal-color:#6BA3E6">
+                <span class="b2-tag" data-checkpoint="text">Now</span>
+                <span class="b2-time" data-checkpoint="text">10:00 · in 5 min</span>
+                <div class="b2-title" data-checkpoint="text">Quarterly Review · Engineering Org</div>
+                <div class="b2-meta" data-checkpoint="text">1h · with Sarah Chen · Zoom</div>
+                <button class="b2-join" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>Join</button>
+              </div>
+              <div class="b2-card then" style="--cal-color:#6BA3E6">
+                <span class="b2-tag" data-checkpoint="text">Then</span>
+                <span class="b2-time" data-checkpoint="text">10:00 · same time</span>
+                <div class="b2-title" data-checkpoint="text">Sync with Sarah · 1:1</div>
+                <div class="b2-meta" data-checkpoint="text">30 min · Meet</div>
+                <button class="b2-join" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4V8z"/></svg>Join</button>
+              </div>
+            </div>
+
+            <!-- Divider -->
+            <div style="padding:10px 16px 4px;display:flex;align-items:center;gap:10px">
+              <span style="font-size:10px;font-weight:600;color:var(--accent);letter-spacing:0.14em;text-transform:uppercase" data-checkpoint="text">Later today</span>
+              <span style="flex:1;height:1px;background:rgba(255,214,204,0.08)"></span>
+            </div>
+
+            <!-- D1 compressed timeline -->
+            <div class="d1-timeline" style="padding-top:4px" data-checkpoint="hybrid-timeline">
+              <div class="d1-hour" data-checkpoint="text">10:05</div>
+              <div class="d1-track">
+                <div class="d1-event" style="--cal-color:#C485D6"><div class="te-title" data-checkpoint="text">Design Critique · Mobile Squad</div><div class="te-meta" data-checkpoint="text">45 min · Studio 3</div></div>
+              </div>
+              <div class="d1-quiet" data-checkpoint="text">3 hours quiet</div>
+              <div class="d1-hour" data-checkpoint="text">1 PM</div>
+              <div class="d1-track">
+                <div class="d1-event" style="--cal-color:#E29F45"><div class="te-title" data-checkpoint="text">Lunch with Mom</div><div class="te-meta" data-checkpoint="text">1h · Tartine</div></div>
+              </div>
+              <div class="d1-quiet" data-checkpoint="text">1.5 hours quiet</div>
+              <div class="d1-hour" data-checkpoint="text">3:30 PM</div>
+              <div class="d1-track">
+                <div class="d1-event" style="--cal-color:#6BA3E6"><div class="te-title" data-checkpoint="text">Performance review · Self</div><div class="te-meta" data-checkpoint="text">30 min</div></div>
+              </div>
+              <div class="d1-day-divider dim" data-checkpoint="text">Tomorrow · Thu Oct 24</div>
+              <div class="d1-hour" data-checkpoint="text">9 AM</div>
+              <div class="d1-track">
+                <div class="d1-event" style="--cal-color:#6BA3E6"><div class="te-title" data-checkpoint="text">Eng Standup</div><div class="te-meta" data-checkpoint="text">15 min · Zoom</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Explanation panel -->
+      <div class="variant-cell" data-checkpoint="hybrid-rationale" style="background:rgba(255,214,204,0.04);border-radius:14px;padding:32px 36px;border:1px solid var(--rule);align-self:start">
+        <h3 style="font-family:'Geist',sans-serif;font-size:16px;font-weight:600;letter-spacing:-0.3px;margin-bottom:18px;color:var(--label)" data-checkpoint="text">Why mix B2 and D1?</h3>
+        <p style="font-size:13px;color:var(--secondary);line-height:1.6;margin-bottom:16px" data-checkpoint="text">B2 answers <strong style="color:var(--label);font-weight:600">"what do I do right now?"</strong> with the next 1-2 actionable events in hero treatment. D1 answers <strong style="color:var(--label);font-weight:600">"how does the rest of my day look?"</strong> with spatial honesty and folded quiet periods.</p>
+        <p style="font-size:13px;color:var(--secondary);line-height:1.6;margin-bottom:16px" data-checkpoint="text">Combining them gives the popover two distinct jobs in clearly separated zones — no information competes for the same visual weight. The hero pair handles the next 5 minutes; the timeline handles the next 24 hours.</p>
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--rule)">
+          <h4 style="font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:12px" data-checkpoint="text">Layering rules</h4>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:10px;font-size:12px;color:var(--secondary);line-height:1.5">
+            <li data-checkpoint="text"><strong style="color:var(--label);font-weight:600">Hero zone:</strong> first 1 or 2 events whose fire-time is within the lead window OR within 60 min. If only 1, show a single full-width hero.</li>
+            <li data-checkpoint="text"><strong style="color:var(--label);font-weight:600">Timeline zone:</strong> everything else through end of tomorrow, capped at 23 (since 2 are in the hero zone, total stays at 25).</li>
+            <li data-checkpoint="text"><strong style="color:var(--label);font-weight:600">Quiet folds:</strong> gaps ≥ 90 min collapse to a "N hours quiet" divider.</li>
+            <li data-checkpoint="text"><strong style="color:var(--label);font-weight:600">Day boundary:</strong> "Tomorrow" divider is always shown even if today has no later events.</li>
+            <li data-checkpoint="text"><strong style="color:var(--label);font-weight:600">Empty hero zone:</strong> when nothing imminent, hero becomes a single calm card showing the next event with relative time ("in 2 h 14 min").</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

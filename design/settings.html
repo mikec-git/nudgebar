@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nudgebar — Settings window</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#2D2520;
+    --surface:#3A2F28;
+    --surface-2:#42362E;
+    --label:#FFD6CC;
+    --secondary:#C7B6A8;
+    --tertiary:#A6968A;
+    --accent:#FFD6CC;
+    --rule:rgba(255,214,204,0.10);
+    --rule-strong:rgba(255,214,204,0.18);
+  }
+  html,body{background:#1A1612;color:var(--label);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  body{padding:48px 56px 96px}
+
+  .page{max-width:1480px;margin:0 auto}
+
+  .doc-header{display:flex;align-items:flex-end;justify-content:space-between;gap:32px;padding-bottom:28px;border-bottom:1px solid var(--rule);margin-bottom:48px}
+  .doc-header .crumb{font-size:12px;font-weight:500;color:var(--tertiary);letter-spacing:0.16em;text-transform:uppercase;margin-bottom:10px}
+  .doc-header h1{font-family:'Geist',sans-serif;font-weight:600;font-size:32px;line-height:1.05;letter-spacing:-1px}
+  .doc-header .meta{font-size:13px;color:var(--tertiary);letter-spacing:0.04em;text-align:right}
+  .brand{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+  .brand svg{width:32px;height:32px}
+  .brand .wordmark{font-family:'Geist',sans-serif;font-size:16px;font-weight:600;letter-spacing:-0.5px;color:var(--label)}
+  .brand .wordmark .period{color:var(--accent)}
+
+  /* Stage scaffold */
+  .scenario{margin-bottom:72px}
+  .scenario-head{display:flex;align-items:baseline;gap:16px;margin-bottom:24px}
+  .scenario-head h2{font-family:'Geist',sans-serif;font-weight:600;font-size:20px;letter-spacing:-0.6px}
+  .scenario-head .num{display:inline-block;width:24px;height:24px;border-radius:50%;background:rgba(255,214,204,0.10);color:var(--accent);font-size:12px;font-weight:600;text-align:center;line-height:24px;margin-right:10px;vertical-align:1px}
+  .scenario-head .tag{font-size:11px;font-weight:500;color:var(--tertiary);letter-spacing:0.14em;text-transform:uppercase}
+
+  /* Desktop frame */
+  .desktop-stage{position:relative;background:linear-gradient(160deg,#4F5A4D 0%,#6E7C68 45%,#8FA28A 100%);border-radius:14px;border:1px solid var(--rule);overflow:hidden;padding:80px 60px 60px;display:flex;align-items:flex-start;justify-content:center}
+  .desktop-stage::after{content:"";position:absolute;inset:0;background:radial-gradient(800px 500px at 20% 0%, rgba(255,236,200,0.10), transparent 60%);pointer-events:none}
+
+  /* macOS window */
+  .win{width:840px;background:#28201C;border-radius:12px;box-shadow:0 32px 80px -8px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.3);overflow:hidden;border:1px solid rgba(255,214,204,0.08);font-family:'Geist',sans-serif;position:relative;z-index:1}
+
+  /* Title bar */
+  .win-titlebar{display:flex;align-items:center;gap:10px;padding:11px 14px;background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,214,204,0.06);position:relative}
+  .win-titlebar .lights{display:flex;gap:8px}
+  .win-titlebar .lights .light{width:12px;height:12px;border-radius:50%}
+  .win-titlebar .lights .r{background:#FF5F57}
+  .win-titlebar .lights .y{background:#FEBC2E}
+  .win-titlebar .lights .g{background:#28C840}
+  .win-titlebar .title{position:absolute;left:0;right:0;text-align:center;font-size:13px;font-weight:600;color:var(--label);pointer-events:none;letter-spacing:-0.2px}
+
+  /* Sidebar + content layout */
+  .win-body{display:grid;grid-template-columns:210px 1fr;min-height:540px}
+
+  /* Sidebar */
+  .sidebar{background:rgba(0,0,0,0.18);border-right:1px solid rgba(255,214,204,0.06);padding:14px 8px;display:flex;flex-direction:column;gap:2px}
+  .sb-section-label{font-size:10px;font-weight:600;color:var(--tertiary);letter-spacing:0.14em;text-transform:uppercase;padding:10px 12px 6px}
+  .sb-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:6px;font-size:13px;font-weight:500;color:var(--secondary);cursor:default}
+  .sb-item:hover{background:rgba(255,214,204,0.06);color:var(--label)}
+  .sb-item.selected{background:rgba(255,214,204,0.14);color:var(--label)}
+  .sb-item svg{width:14px;height:14px;flex:none}
+  .sb-item .badge{margin-left:auto;font-size:10px;font-weight:500;color:var(--tertiary);background:rgba(255,214,204,0.10);padding:2px 7px;border-radius:999px;letter-spacing:0.02em}
+  .sb-item.selected .badge{color:var(--label);background:rgba(255,214,204,0.20)}
+
+  .sidebar-footer{margin-top:auto;padding:14px 12px;display:flex;align-items:center;gap:10px;font-size:11px;color:var(--tertiary);border-top:1px solid rgba(255,214,204,0.06)}
+  .sidebar-footer svg{width:18px;height:18px;flex:none}
+  .sidebar-footer .v{font-weight:500}
+
+  /* Content area */
+  .content{padding:24px 28px;overflow:hidden}
+  .content-head{margin-bottom:24px}
+  .content-head h3{font-size:18px;font-weight:600;color:var(--label);letter-spacing:-0.4px;margin-bottom:4px}
+  .content-head .sub{font-size:12px;color:var(--tertiary)}
+
+  /* Form rows */
+  .form-section{margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid var(--rule)}
+  .form-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+  .form-section h4{font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:14px}
+  .form-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;gap:24px}
+  .form-row .left{flex:1;min-width:0}
+  .form-row .label{font-size:13px;font-weight:500;color:var(--label);letter-spacing:-0.1px}
+  .form-row .hint{font-size:11px;color:var(--tertiary);margin-top:2px;line-height:1.45}
+  .form-row .right{flex:none;display:flex;align-items:center;gap:10px}
+
+  /* Controls */
+  .switch{width:36px;height:20px;border-radius:999px;background:rgba(255,255,255,0.16);position:relative;transition:background 120ms;flex:none}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform 120ms;box-shadow:0 1px 2px rgba(0,0,0,0.4)}
+  .switch.on{background:var(--accent)}
+  .switch.on::after{transform:translateX(16px);background:#1F1A17}
+  .stepper{display:inline-flex;align-items:center;gap:0;background:rgba(255,255,255,0.06);border-radius:7px;padding:2px;border:1px solid var(--rule)}
+  .stepper button{background:transparent;border:0;color:var(--secondary);font-family:'Geist',sans-serif;font-size:14px;font-weight:500;padding:3px 9px;border-radius:5px;cursor:pointer;line-height:1}
+  .stepper .val{padding:3px 10px;color:var(--label);font-weight:600;font-variant-numeric:tabular-nums;min-width:48px;text-align:center;font-size:13px}
+  .dropdown{display:inline-flex;align-items:center;gap:8px;padding:6px 8px 6px 12px;background:rgba(255,255,255,0.06);border:1px solid var(--rule);border-radius:7px;font-size:13px;font-weight:500;color:var(--label);cursor:default;min-width:160px;justify-content:space-between}
+  .dropdown .chev{opacity:0.5;font-size:10px}
+  .input{padding:7px 12px;background:rgba(255,255,255,0.06);border:1px solid var(--rule);border-radius:7px;font-family:'Geist',sans-serif;font-size:13px;color:var(--label);font-weight:500;min-width:160px}
+  .btn{padding:7px 14px;background:rgba(255,214,204,0.10);color:var(--label);border:1px solid rgba(255,214,204,0.20);border-radius:7px;font-family:'Geist',sans-serif;font-size:12px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;letter-spacing:-0.005em}
+  .btn:hover{background:rgba(255,214,204,0.18)}
+  .btn.primary{background:var(--accent);color:#1F1A17;font-weight:600;border-color:transparent}
+  .btn.primary:hover{background:#FFC8B9}
+  .btn.subtle{background:transparent;border-color:transparent;color:var(--secondary);padding:5px 8px}
+  .btn.subtle:hover{background:rgba(255,214,204,0.06);color:var(--label)}
+  .btn svg{width:12px;height:12px}
+  .badge-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:500;letter-spacing:0.02em}
+  .badge-pill.connected{background:rgba(78,196,123,0.16);color:#9DDDB1}
+  .badge-pill.connected .dot{width:6px;height:6px;border-radius:50%;background:#7BC890}
+  .badge-pill.available{background:rgba(255,214,204,0.08);color:var(--secondary)}
+  .badge-pill.beta{background:rgba(255,214,204,0.16);color:var(--accent);font-weight:600;letter-spacing:0.06em;text-transform:uppercase}
+
+  /* Slider */
+  .slider-row{display:flex;flex-direction:column;gap:8px}
+  .slider-track{position:relative;height:24px;display:flex;align-items:center}
+  .slider-bar{flex:1;height:4px;background:rgba(255,255,255,0.10);border-radius:999px;position:relative}
+  .slider-bar .fill{position:absolute;left:0;top:0;bottom:0;width:38%;background:var(--accent);border-radius:999px}
+  .slider-bar .thumb{position:absolute;top:50%;left:38%;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.4);border:2px solid var(--accent)}
+  .slider-row .ticks{display:flex;justify-content:space-between;font-size:10px;color:var(--tertiary);font-variant-numeric:tabular-nums}
+
+  /* Connectors */
+  .connector-list{display:flex;flex-direction:column;gap:8px}
+  .connector-row{display:flex;align-items:center;gap:14px;padding:12px 14px;background:rgba(255,214,204,0.03);border:1px solid var(--rule);border-radius:9px}
+  .connector-row.connected{background:rgba(78,196,123,0.06);border-color:rgba(78,196,123,0.18)}
+  .connector-icon{width:36px;height:36px;border-radius:8px;background:rgba(255,214,204,0.08);display:flex;align-items:center;justify-content:center;flex:none;color:var(--label)}
+  .connector-icon svg{width:18px;height:18px}
+  .connector-icon.google{background:rgba(46,148,213,0.16);color:#9CC8E8}
+  .connector-icon.msft{background:rgba(108,113,196,0.18);color:#BDC1E4}
+  .connector-icon.caldav{background:rgba(255,196,120,0.16);color:#FFD49C}
+  .connector-icon.calendly{background:rgba(78,196,123,0.16);color:#A3DBB5}
+  .connector-icon.calcom{background:rgba(196,133,214,0.18);color:#DCB2EA}
+  .connector-icon.acuity{background:rgba(255,150,150,0.16);color:#FFBDBD}
+  .connector-meta{flex:1;min-width:0}
+  .connector-meta .name{font-size:13px;font-weight:600;color:var(--label);letter-spacing:-0.2px}
+  .connector-meta .desc{font-size:11px;color:var(--tertiary);margin-top:2px;line-height:1.45}
+  .connector-action{flex:none;display:flex;align-items:center;gap:10px}
+
+  /* Sound picker */
+  .sound-list{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+  .sound-chip{padding:8px 10px;background:rgba(255,214,204,0.06);border:1px solid var(--rule);border-radius:6px;font-size:12px;color:var(--label);font-weight:500;text-align:center;cursor:default}
+  .sound-chip:hover{background:rgba(255,214,204,0.12)}
+  .sound-chip.selected{background:rgba(255,214,204,0.18);border-color:rgba(255,214,204,0.30);color:var(--label);font-weight:600}
+
+  /* Chip group */
+  .chip-group{display:flex;gap:6px}
+  .chip{padding:6px 12px;background:rgba(255,214,204,0.06);border:1px solid var(--rule);border-radius:6px;font-size:12px;font-weight:500;color:var(--label);cursor:default;font-variant-numeric:tabular-nums}
+  .chip:hover{background:rgba(255,214,204,0.12)}
+  .chip.selected{background:var(--accent);color:#1F1A17;font-weight:600;border-color:transparent}
+</style>
+</head>
+<body data-checkpoint="page">
+
+<div class="page">
+
+  <header class="doc-header" data-checkpoint="header">
+    <div>
+      <div class="brand">
+        <svg viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.06"/>
+          <circle cx="100" cy="40" r="14" fill="#FFD6CC"/>
+          <circle cx="160" cy="100" r="14" fill="#FFD6CC"/>
+          <circle cx="100" cy="160" r="14" fill="#FFD6CC"/>
+          <circle cx="40" cy="100" r="14" fill="#FFD6CC"/>
+          <circle cx="100" cy="100" r="14" fill="#FFD6CC"/>
+        </svg>
+        <span class="wordmark" data-checkpoint="text">Nudgebar<span class="period">.</span></span>
+      </div>
+      <div class="crumb" data-checkpoint="text">Surface · Settings window</div>
+      <h1 data-checkpoint="text">Settings · sidebar layout · 3 sections</h1>
+    </div>
+    <div class="meta" data-checkpoint="text">840 × 540 · macOS Ventura+ pattern · sidebar 210 px · brand-tinted</div>
+  </header>
+
+  <!-- SCENARIO 1: GENERAL -->
+  <section class="scenario" data-checkpoint="scenario-general">
+    <div class="scenario-head">
+      <h2 data-checkpoint="text"><span class="num">1</span>Settings · General</h2>
+      <span class="tag" data-checkpoint="text">Default landing · core toggles and status item config</span>
+    </div>
+
+    <div class="desktop-stage" data-checkpoint="stage-general">
+      <div class="win" data-checkpoint="win-general">
+        <div class="win-titlebar" data-checkpoint="titlebar-general">
+          <div class="lights">
+            <span class="light r"></span>
+            <span class="light y"></span>
+            <span class="light g"></span>
+          </div>
+          <div class="title" data-checkpoint="text">Nudgebar Settings</div>
+        </div>
+        <div class="win-body" data-checkpoint="body-general">
+          <aside class="sidebar" data-checkpoint="sidebar-general">
+            <div class="sb-section-label" data-checkpoint="text">App</div>
+            <div class="sb-item selected" data-checkpoint="sb-general">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span data-checkpoint="text">General</span>
+            </div>
+            <div class="sb-item" data-checkpoint="sb-cal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+              <span data-checkpoint="text">Calendars</span>
+              <span class="badge" data-checkpoint="text">5</span>
+            </div>
+            <div class="sb-item" data-checkpoint="sb-conn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l-3 3 6 6 3-3"/><path d="M15 12l3-3-6-6-3 3"/><line x1="9" y1="12" x2="15" y2="6"/><line x1="9" y1="18" x2="15" y2="12"/></svg>
+              <span data-checkpoint="text">Connectors</span>
+              <span class="badge" data-checkpoint="text">1/7</span>
+            </div>
+            <div class="sb-item" data-checkpoint="sb-alerts">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+              <span data-checkpoint="text">Alerts</span>
+            </div>
+            <div class="sb-item" data-checkpoint="sb-about">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16" x2="12" y2="16"/></svg>
+              <span data-checkpoint="text">About</span>
+            </div>
+
+            <div class="sidebar-footer" data-checkpoint="sidebar-footer-general">
+              <svg viewBox="0 0 200 200" fill="none"><circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.10"/><circle cx="100" cy="40" r="14" fill="#FFD6CC"/><circle cx="160" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="160" r="14" fill="#FFD6CC"/><circle cx="40" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="100" r="14" fill="#FFD6CC"/></svg>
+              <div>
+                <div class="v" data-checkpoint="text">Nudgebar 1.0</div>
+                <div style="color:var(--tertiary);font-size:10px" data-checkpoint="text">Up to date</div>
+              </div>
+            </div>
+          </aside>
+
+          <main class="content" data-checkpoint="content-general">
+            <div class="content-head">
+              <h3 data-checkpoint="text">General</h3>
+              <div class="sub" data-checkpoint="text">Core behaviour and how Nudgebar shows up in your menu bar.</div>
+            </div>
+
+            <div class="form-section">
+              <h4 data-checkpoint="text">Alerts</h4>
+              <div class="form-row" data-checkpoint="row-fs">
+                <div class="left">
+                  <div class="label" data-checkpoint="text">Full-screen alerts</div>
+                  <div class="hint" data-checkpoint="text">Show a full-screen card on every active display when an event fires.</div>
+                </div>
+                <div class="right"><span class="switch on"></span></div>
+              </div>
+              <div class="form-row" data-checkpoint="row-lead">
+                <div class="left">
+                  <div class="label" data-checkpoint="text">Lead time</div>
+                  <div class="hint" data-checkpoint="text">How many minutes before an event starts the alert should fire.</div>
+                </div>
+                <div class="right">
+                  <span class="stepper">
+                    <button data-checkpoint="text">−</button>
+                    <span class="val" data-checkpoint="text">5 min</span>
+                    <button data-checkpoint="text">+</button>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h4 data-checkpoint="text">Menu bar status item</h4>
+              <div class="form-row" data-checkpoint="row-label">
+                <div class="left">
+                  <div class="label" data-checkpoint="text">Status item label</div>
+                  <div class="hint" data-checkpoint="text">What appears next to the bell icon in the menu bar.</div>
+                </div>
+                <div class="right">
+                  <span class="dropdown" data-checkpoint="text">Title + countdown <span class="chev">▾</span></span>
+                </div>
+              </div>
+              <div class="form-row" data-checkpoint="row-title-len">
+                <div class="left">
+                  <div class="label" data-checkpoint="text">Max title characters</div>
+                  <div class="hint" data-checkpoint="text">Truncate long titles to keep the menu bar readable.</div>
+                </div>
+                <div class="right">
+                  <span class="stepper">
+                    <button data-checkpoint="text">−</button>
+                    <span class="val" data-checkpoint="text">24</span>
+                    <button data-checkpoint="text">+</button>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h4 data-checkpoint="text">System</h4>
+              <div class="form-row" data-checkpoint="row-login">
+                <div class="left">
+                  <div class="label" data-checkpoint="text">Launch at login</div>
+                  <div class="hint" data-checkpoint="text">Open Nudgebar automatically when you sign into your Mac.</div>
+                </div>
+                <div class="right"><span class="switch on"></span></div>
+              </div>
+              <div class="form-row" data-checkpoint="row-theme">
+                <div class="left">
+                  <div class="label" data-checkpoint="text">Appearance</div>
+                  <div class="hint" data-checkpoint="text">Light, dark, or follow the system. Brand stays consistent in dark.</div>
+                </div>
+                <div class="right">
+                  <span class="dropdown" data-checkpoint="text">System <span class="chev">▾</span></span>
+                </div>
+              </div>
+            </div>
+
+          </main>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCENARIO 2: CONNECTORS -->
+  <section class="scenario" data-checkpoint="scenario-connectors">
+    <div class="scenario-head">
+      <h2 data-checkpoint="text"><span class="num">2</span>Settings · Connectors</h2>
+      <span class="tag" data-checkpoint="text">7-provider catalog · oauth, caldav, api token, macOS Privacy</span>
+    </div>
+
+    <div class="desktop-stage" data-checkpoint="stage-connectors">
+      <div class="win" data-checkpoint="win-connectors">
+        <div class="win-titlebar">
+          <div class="lights"><span class="light r"></span><span class="light y"></span><span class="light g"></span></div>
+          <div class="title" data-checkpoint="text">Nudgebar Settings</div>
+        </div>
+        <div class="win-body">
+          <aside class="sidebar">
+            <div class="sb-section-label" data-checkpoint="text">App</div>
+            <div class="sb-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span data-checkpoint="text">General</span>
+            </div>
+            <div class="sb-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+              <span data-checkpoint="text">Calendars</span>
+              <span class="badge" data-checkpoint="text">5</span>
+            </div>
+            <div class="sb-item selected">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l-3 3 6 6 3-3"/><path d="M15 12l3-3-6-6-3 3"/><line x1="9" y1="12" x2="15" y2="6"/><line x1="9" y1="18" x2="15" y2="12"/></svg>
+              <span data-checkpoint="text">Connectors</span>
+              <span class="badge" data-checkpoint="text">1/7</span>
+            </div>
+            <div class="sb-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+              <span data-checkpoint="text">Alerts</span>
+            </div>
+            <div class="sb-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16" x2="12" y2="16"/></svg>
+              <span data-checkpoint="text">About</span>
+            </div>
+
+            <div class="sidebar-footer">
+              <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.10"/><circle cx="100" cy="40" r="14" fill="#FFD6CC"/><circle cx="160" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="160" r="14" fill="#FFD6CC"/><circle cx="40" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="100" r="14" fill="#FFD6CC"/></svg>
+              <div>
+                <div class="v" data-checkpoint="text">Nudgebar 1.0</div>
+                <div style="color:var(--tertiary);font-size:10px" data-checkpoint="text">Up to date</div>
+              </div>
+            </div>
+          </aside>
+
+          <main class="content" data-checkpoint="content-connectors">
+            <div class="content-head">
+              <h3 data-checkpoint="text">Connectors</h3>
+              <div class="sub" data-checkpoint="text">Sources Nudgebar can read your events from. macOS Calendar is connected by default; add more to broaden coverage.</div>
+            </div>
+
+            <div class="connector-list" data-checkpoint="connector-list">
+              <div class="connector-row connected" data-checkpoint="conn-eventkit">
+                <div class="connector-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+                </div>
+                <div class="connector-meta">
+                  <div class="name" data-checkpoint="text">macOS Calendar</div>
+                  <div class="desc" data-checkpoint="text">Local connector for calendars already configured in macOS. Read + write · 5 calendars detected.</div>
+                </div>
+                <div class="connector-action">
+                  <span class="badge-pill connected" data-checkpoint="text"><span class="dot"></span>Connected</span>
+                  <button class="btn subtle" data-checkpoint="text">Manage</button>
+                </div>
+              </div>
+
+              <div class="connector-row" data-checkpoint="conn-google">
+                <div class="connector-icon google">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M16 12a4 4 0 1 1-3-3.87" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16 8v4h-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                </div>
+                <div class="connector-meta">
+                  <div class="name" data-checkpoint="text">Google Calendar</div>
+                  <div class="desc" data-checkpoint="text">Direct Google connector, independent from macOS account sync. OAuth · read + write · webhooks.</div>
+                </div>
+                <div class="connector-action">
+                  <span class="badge-pill available" data-checkpoint="text">Available</span>
+                  <button class="btn" data-checkpoint="text">Connect</button>
+                </div>
+              </div>
+
+              <div class="connector-row" data-checkpoint="conn-msft">
+                <div class="connector-icon msft">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="8"/><rect x="3" y="13" width="8" height="8"/><rect x="13" y="13" width="8" height="8"/></svg>
+                </div>
+                <div class="connector-meta">
+                  <div class="name" data-checkpoint="text">Microsoft Outlook / Exchange</div>
+                  <div class="desc" data-checkpoint="text">Outlook.com, Microsoft 365, and Exchange Online via Graph. OAuth · read + write · webhooks.</div>
+                </div>
+                <div class="connector-action">
+                  <span class="badge-pill available" data-checkpoint="text">Available</span>
+                  <button class="btn" data-checkpoint="text">Connect</button>
+                </div>
+              </div>
+
+              <div class="connector-row" data-checkpoint="conn-caldav">
+                <div class="connector-icon caldav">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3a14 14 0 0 1 0 18"/><path d="M12 3a14 14 0 0 0 0 18"/></svg>
+                </div>
+                <div class="connector-meta">
+                  <div class="name" data-checkpoint="text">CalDAV</div>
+                  <div class="desc" data-checkpoint="text">Standards connector for iCloud, Fastmail, Nextcloud, Radicale, DAViCal, and custom CalDAV servers.</div>
+                </div>
+                <div class="connector-action">
+                  <span class="badge-pill available" data-checkpoint="text">Available</span>
+                  <button class="btn" data-checkpoint="text">Connect</button>
+                </div>
+              </div>
+
+              <div class="connector-row" data-checkpoint="conn-calendly">
+                <div class="connector-icon calendly">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="2" x2="14" y2="2"/><circle cx="12" cy="13" r="8"/><line x1="12" y1="13" x2="12" y2="9"/><line x1="12" y1="13" x2="15" y2="13"/></svg>
+                </div>
+                <div class="connector-meta">
+                  <div class="name" data-checkpoint="text">Calendly</div>
+                  <div class="desc" data-checkpoint="text">Scheduling connector for booked and canceled meetings. Not a full calendar backend.</div>
+                </div>
+                <div class="connector-action">
+                  <span class="badge-pill beta" data-checkpoint="text">Beta</span>
+                  <button class="btn" data-checkpoint="text">Connect</button>
+                </div>
+              </div>
+
+              <div class="connector-row" data-checkpoint="conn-calcom">
+                <div class="connector-icon calcom">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0"/><path d="M7 14a5 5 0 0 0 10 0"/></svg>
+                </div>
+                <div class="connector-meta">
+                  <div class="name" data-checkpoint="text">Cal.com</div>
+                  <div class="desc" data-checkpoint="text">Scheduling connector for Cal.com bookings and event types. API token · webhooks.</div>
+                </div>
+                <div class="connector-action">
+                  <span class="badge-pill beta" data-checkpoint="text">Beta</span>
+                  <button class="btn" data-checkpoint="text">Connect</button>
+                </div>
+              </div>
+
+              <div class="connector-row" data-checkpoint="conn-acuity">
+                <div class="connector-icon acuity">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                </div>
+                <div class="connector-meta">
+                  <div class="name" data-checkpoint="text">Acuity Scheduling</div>
+                  <div class="desc" data-checkpoint="text">Appointment-booking connector for Acuity calendars. API token · webhooks.</div>
+                </div>
+                <div class="connector-action">
+                  <span class="badge-pill beta" data-checkpoint="text">Beta</span>
+                  <button class="btn" data-checkpoint="text">Connect</button>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCENARIO 3: ALERTS -->
+  <section class="scenario" data-checkpoint="scenario-alerts">
+    <div class="scenario-head">
+      <h2 data-checkpoint="text"><span class="num">3</span>Settings · Alerts</h2>
+      <span class="tag" data-checkpoint="text">Auto-dismiss · sound · snooze presets</span>
+    </div>
+
+    <div class="desktop-stage" data-checkpoint="stage-alerts">
+      <div class="win" data-checkpoint="win-alerts">
+        <div class="win-titlebar">
+          <div class="lights"><span class="light r"></span><span class="light y"></span><span class="light g"></span></div>
+          <div class="title" data-checkpoint="text">Nudgebar Settings</div>
+        </div>
+        <div class="win-body">
+          <aside class="sidebar">
+            <div class="sb-section-label" data-checkpoint="text">App</div>
+            <div class="sb-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span data-checkpoint="text">General</span>
+            </div>
+            <div class="sb-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+              <span data-checkpoint="text">Calendars</span>
+              <span class="badge" data-checkpoint="text">5</span>
+            </div>
+            <div class="sb-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l-3 3 6 6 3-3"/><path d="M15 12l3-3-6-6-3 3"/><line x1="9" y1="12" x2="15" y2="6"/><line x1="9" y1="18" x2="15" y2="12"/></svg>
+              <span data-checkpoint="text">Connectors</span>
+              <span class="badge" data-checkpoint="text">1/7</span>
+            </div>
+            <div class="sb-item selected">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+              <span data-checkpoint="text">Alerts</span>
+            </div>
+            <div class="sb-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16" x2="12" y2="16"/></svg>
+              <span data-checkpoint="text">About</span>
+            </div>
+
+            <div class="sidebar-footer">
+              <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="95" fill="#FFD6CC" opacity="0.10"/><circle cx="100" cy="40" r="14" fill="#FFD6CC"/><circle cx="160" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="160" r="14" fill="#FFD6CC"/><circle cx="40" cy="100" r="14" fill="#FFD6CC"/><circle cx="100" cy="100" r="14" fill="#FFD6CC"/></svg>
+              <div>
+                <div class="v" data-checkpoint="text">Nudgebar 1.0</div>
+                <div style="color:var(--tertiary);font-size:10px" data-checkpoint="text">Up to date</div>
+              </div>
+            </div>
+          </aside>
+
+          <main class="content" data-checkpoint="content-alerts">
+            <div class="content-head">
+              <h3 data-checkpoint="text">Alerts</h3>
+              <div class="sub" data-checkpoint="text">How the full-screen alert behaves when an event fires.</div>
+            </div>
+
+            <div class="form-section">
+              <h4 data-checkpoint="text">Auto-dismiss</h4>
+              <div class="form-row" data-checkpoint="row-ad">
+                <div class="left" style="flex:1">
+                  <div class="label" data-checkpoint="text">Auto-dismiss after</div>
+                  <div class="hint" data-checkpoint="text">Range 5-300 seconds, or Never. The countdown ring on each alert reflects this.</div>
+                </div>
+                <div class="right" style="flex:none;align-items:flex-end;gap:14px">
+                  <div class="slider-row" style="min-width:220px">
+                    <div class="slider-track"><div class="slider-bar"><div class="fill"></div><div class="thumb"></div></div></div>
+                    <div class="ticks"><span data-checkpoint="text">5s</span><span data-checkpoint="text">30s</span><span data-checkpoint="text">60s</span><span data-checkpoint="text">2m</span><span data-checkpoint="text">5m</span></div>
+                  </div>
+                  <span class="dropdown" style="min-width:90px" data-checkpoint="text">30 s <span class="chev">▾</span></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h4 data-checkpoint="text">Sound</h4>
+              <div class="form-row" data-checkpoint="row-sound-pick">
+                <div class="left">
+                  <div class="label" data-checkpoint="text">Alert sound</div>
+                  <div class="hint" data-checkpoint="text">Plays once when the alert appears, then repeats every 5 seconds until dismissed or auto-dismissed.</div>
+                </div>
+                <div class="right">
+                  <button class="btn" data-checkpoint="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>Preview</button>
+                </div>
+              </div>
+              <div class="sound-list" data-checkpoint="sound-list">
+                <div class="sound-chip" data-checkpoint="text">Glass</div>
+                <div class="sound-chip selected" data-checkpoint="text">Ping</div>
+                <div class="sound-chip" data-checkpoint="text">Submarine</div>
+                <div class="sound-chip" data-checkpoint="text">Funk</div>
+                <div class="sound-chip" data-checkpoint="text">Blow</div>
+                <div class="sound-chip" data-checkpoint="text">Hero</div>
+                <div class="sound-chip" data-checkpoint="text">Pop</div>
+                <div class="sound-chip" data-checkpoint="text">Tink</div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h4 data-checkpoint="text">Snooze</h4>
+              <div class="form-row" data-checkpoint="row-snooze-presets">
+                <div class="left">
+                  <div class="label" data-checkpoint="text">Snooze presets</div>
+                  <div class="hint" data-checkpoint="text">Options shown in the snooze dropdown on each alert.</div>
+                </div>
+                <div class="right">
+                  <div class="chip-group">
+                    <span class="chip selected" data-checkpoint="text">1 min</span>
+                    <span class="chip selected" data-checkpoint="text">5 min</span>
+                    <span class="chip selected" data-checkpoint="text">10 min</span>
+                    <span class="chip" data-checkpoint="text">15 min</span>
+                    <span class="chip" data-checkpoint="text">30 min</span>
+                  </div>
+                </div>
+              </div>
+              <div class="form-row" data-checkpoint="row-snooze-collapse">
+                <div class="left">
+                  <div class="label" data-checkpoint="text">Collapse snooze past start</div>
+                  <div class="hint" data-checkpoint="text">If a snooze would end after the event has started, fire immediately on the next tick instead of waiting.</div>
+                </div>
+                <div class="right"><span class="switch on"></span></div>
+              </div>
+            </div>
+
+          </main>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>
