@@ -1,0 +1,90 @@
+name: Release
+
+# Cut a release by pushing a version tag:
+#
+#   git tag v0.1.1 && git push origin v0.1.1
+#
+# This builds the app, publishes a GitHub Release with Nudgebar.zip attached, and
+# bumps the Homebrew cask (version + sha256) in mikec-git/homebrew-tap - the cask
+# equivalent of what GoReleaser does for a Go CLI.
+#
+# One-time setup: add a repository secret HOMEBREW_TAP_TOKEN - a GitHub personal
+# access token with write (Contents) access to mikec-git/homebrew-tap. Without it the
+# Release is still published; only the cask bump is skipped.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select latest Xcode
+        run: |
+          latest=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$latest" ]; then sudo xcode-select -s "$latest"; fi
+
+      - name: Derive version from tag
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp version into the build
+        run: |
+          v='${{ steps.ver.outputs.version }}'
+          sed -i '' -E "s/(static let version = \")[^\"]*\"/\1${v}\"/" Sources/Nudgebar/AppInfo.swift
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${v}" Resources/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${v}" Resources/Info.plist || true
+
+      - name: Build, sign, and zip
+        run: |
+          make package
+          codesign --force --deep -s - dist/Nudgebar.app
+          ditto -c -k --sequesterRsrc --keepParent dist/Nudgebar.app dist/Nudgebar.zip
+          echo "SHA256=$(shasum -a 256 dist/Nudgebar.zip | cut -d' ' -f1)" >> "$GITHUB_ENV"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v='${{ steps.ver.outputs.version }}'
+          {
+            echo 'Install with Homebrew:'
+            echo
+            echo '```sh'
+            echo 'brew install --cask mikec-git/tap/nudgebar'
+            echo '```'
+            echo
+            echo 'Or download `Nudgebar.zip` below and move `Nudgebar.app` to /Applications.'
+            echo 'The app is ad-hoc signed (not notarized), so on first launch right-click -> Open.'
+            echo
+            echo 'Requires macOS 13+.'
+          } > "$RUNNER_TEMP/notes.md"
+          gh release create "$GITHUB_REF_NAME" dist/Nudgebar.zip \
+            --repo "$GITHUB_REPOSITORY" --title "Nudgebar ${v}" --notes-file "$RUNNER_TEMP/notes.md" \
+          || gh release upload "$GITHUB_REF_NAME" dist/Nudgebar.zip --repo "$GITHUB_REPOSITORY" --clobber
+
+      - name: Bump Homebrew cask
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [ -z "$TAP_TOKEN" ]; then
+            echo "HOMEBREW_TAP_TOKEN not set - skipping cask bump (Release is still published)."
+            exit 0
+          fi
+          v='${{ steps.ver.outputs.version }}'
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/mikec-git/homebrew-tap.git" tap
+          cd tap
+          sed -i '' -E "s/(version \")[^\"]*\"/\1${v}\"/" Casks/nudgebar.rb
+          sed -i '' -E "s/(sha256 \")[^\"]*\"/\1${SHA256}\"/" Casks/nudgebar.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/nudgebar.rb
+          git commit -m "nudgebar ${v}"
+          git push
