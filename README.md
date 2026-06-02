@@ -68,15 +68,6 @@ git clone https://github.com/mikec-git/nudgebar.git
 cd nudgebar && make package && open dist/Nudgebar.app
 ```
 
-## Develop
-
-```sh
-make swift-test      # 127 tests
-swift run Nudgebar   # run from source
-```
-
-CI runs `swift build` + `swift test` on macOS. Sounds are CC0 / public-domain + Mixkit-Free ([licenses](Resources/Sounds/README.md)).
-
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE). Bundled sounds are CC0 / public-domain + Mixkit-Free ([sources & licenses](Resources/Sounds/README.md)).
