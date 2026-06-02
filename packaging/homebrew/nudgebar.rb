@@ -4,10 +4,10 @@
 #   https://github.com/mikec-git/homebrew-tap/blob/main/Casks/nudgebar.rb
 #   brew install --cask mikec-git/tap/nudgebar
 #
-# This in-repo copy is a reference mirror. On a new release, rebuild the zip
-# (`make package` then `ditto -c -k --keepParent dist/Nudgebar.app Nudgebar.zip`),
-# attach it to the GitHub release, then update `version` and `sha256` here and in
-# the tap (`shasum -a 256 Nudgebar.zip`).
+# This in-repo copy is a reference mirror. Releases are automated: pushing a `v*` tag
+# runs .github/workflows/release.yml, which builds the app, publishes the GitHub
+# Release, and bumps `version` + `sha256` in the tap cask. Update this mirror by hand
+# if you want it to stay in sync.
 #
 # NOTE: the app is ad-hoc signed (not notarized), so first launch shows a Gatekeeper
 # prompt (right-click -> Open, or `xattr -dr com.apple.quarantine`).
